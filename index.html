@@ -1,0 +1,30 @@
+<html>
+<head>
+<title>Phone number editor demo</title>
+
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, shrink-to-fit=no" />
+<meta name="author" content="Oleksii Kuznietsov aka utilmind, 2021" />
+
+<link rel="stylesheet" type="text/css" href="./css/bootstrap.min.css" />
+<link rel="stylesheet" type="text/css" href="./css/common.min.css" />
+
+<script defer src="http://pasfotocabine/js/jqb.js"></script>
+<script defer src="http://pasfotocabine/js/lang/common_en.js"></script>
+<script defer src="http://pasfotocabine/js/common.min.js"></script>
+</head>
+
+<body>
+
+    <div id="content" class="container mt-5">
+    <form method="post">
+        <div><label for="dlg_phone">Phone number:</label></div>
+        <div><input type="tel" pattern="[\d\s\(\)\[\]\-\+\.,]+" name="phone" id="dlg_phone" class="form-control place-bi validate-bgerror"
+            placeholder="phone number" spellcheck="false" maxlength="32" /></div>
+
+        <div class="mt-2"><button type="submit" class="btn btn-primary">Submit changes</button></div>
+    </form>
+    </div>
+
+</body>
+</html>
