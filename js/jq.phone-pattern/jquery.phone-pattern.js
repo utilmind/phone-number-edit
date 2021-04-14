@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2
+ *  phone-pattern - 0.2.1
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com> 10.04.2021
@@ -123,16 +123,19 @@
 
                 makeNicePhone = function() {
                     var phone = $field.val().trim(),
-                        digPhone,
+
+                        hasPlusPrefix = "+" === phone.charAt(0),
+                        hasZeroPrefix,
+                        prefix = "",
+                        digPhone = digitsOnly(phone, hasPlusPrefix), // trim all zeros in the beginning if there is "+" prefix. There is no international phones starting with "0".
+
+                        tempPhoneLength,
                         tempPattern,
                         tempAllowZeroPrefix,
-                        tempCountryCodeLength,
-                        prefix = "";
+                        tempCountryCodeLength;
 
                     curPhoneLength = 0; // no limit for typing
-                    if ("+" === phone.charAt(0)) {
-                        digPhone = digitsOnly(phone, 1); // trim all zeros in the beginning. There is no international phones starting with "0".
-
+                    if (hasPlusPrefix) {
                         // TODO: get all country codes, to know their length + know pattern for each country
                         // ... but okay, let's do it for the USA...
 
@@ -148,51 +151,48 @@
 
                         tempPattern = preparePhonePatterns(tempPattern);
                         digPhone = digPhone.substr(tempCountryCodeLength = prefix.length);
-
+                        tempPhoneLength = digPhone.length;
                         tempAllowZeroPrefix = false; // ATTN! There is no patterns that allow 0-prefix! We use "+(country code)" instead!
 
                         prefix = "+" + prefix + " ";
                     }else {
-                        digPhone = digitsOnly(phone),
                         tempPattern = phonePattern;
+                        tempPhoneLength = digPhone.length;
 
                         tempAllowZeroPrefix = phoneAllowZeroPrefix;
                         tempCountryCodeLength = 0;
 
                         curMinPatternLength = minPatternLength;
-                    }
 
-                    // next stage
-                    var phoneLength = digPhone.length;
-
-                    if (prefix || curMinPatternLength - (phoneAllowZeroPrefix && "0" !== digPhone.charAt(0) ? 1 : 0) < phoneLength) {
-                        if (!prefix)
+                        if (hasZeroPrefix = "0" === digPhone.charAt(0))
                             digPhone = digPhone.replace(/^0+/, ""); // now this is phone without leading zeros (they could be more than 1)
 
-                        if (curMinPatternLength <= digPhone.length + prefix.length) { // length is enough for patternization
+                        if (curMinPatternLength > digPhone.length)
+                            return phone; // nothing to do
+                    }
 
-                            var i, thisPattern, defPattern, usePattern;
-                            for (i in tempPattern) {
-                                thisPattern = tempPattern[i];
-                                if (!thisPattern[2]) { // no alts
-                                    if (!defPattern)
-                                        defPattern = thisPattern;
 
-                                }else if (thisPattern[2].test(digPhone)) { // has alts + this number corresponds it
-                                    usePattern = thisPattern;
-                                    break;
-                                }
-                            }
-                            if (!usePattern) usePattern = defPattern;
-                            usePattern = usePattern[tempAllowZeroPrefix && digPhone.length !== phoneLength ? 0 : 1]; // with or w/o leading zeros
+                    // next stage... Choose an appropriate pattern to use.
+                    var i, thisPattern, defPattern, usePattern;
+                    for (i in tempPattern) {
+                        thisPattern = tempPattern[i];
+                        if (!thisPattern[2]) { // no alts
+                            if (!defPattern)
+                                defPattern = thisPattern;
 
-                            // update input
-                            $field.val(prefix + patternize(digPhone, usePattern));
-
-                            // set new limit for typing
-                            curPhoneLength = usePattern.replace(/[^X]/g, "").length + tempCountryCodeLength;
+                        }else if (thisPattern[2].test(digPhone)) { // has alts + this number corresponds it
+                            usePattern = thisPattern;
+                            break;
                         }
                     }
+                    if (!usePattern) usePattern = defPattern;
+                    usePattern = usePattern[tempAllowZeroPrefix && hasZeroPrefix ? 0 : 1]; // with or w/o leading zeros
+
+                    // update input
+                    $field.val(prefix + patternize(digPhone, usePattern));
+
+                    // set new limit for typing
+                    curPhoneLength = usePattern.replace(/[^X]/g, "").length + tempCountryCodeLength;
                 },
 
                 stripPatternLeading0 = function(pattern) {
@@ -215,7 +215,7 @@
             $field.on("keypress", function(e) {
                 var curVal = this.value.trim(),
                     selStart = e.target.selectionStart,
-                    selEnd = e.target.selectionEnd,
+                    // selEnd = e.target.selectionEnd,
                     keyCode = e.keyCode,
                     ch = String.fromCharCode(keyCode);
 
