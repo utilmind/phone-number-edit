@@ -10,7 +10,7 @@ https://utilmind.com/demos/2021/phone-number-edit/
 Requirement: jQuery plugin for input controls, that allows to format on the fly phone numbers by specified pattern.
 
 Originally made only for the American and Canadian phone patterns, (XXX) XXX-XXXX, but greatly improved in v0.1,
-to allow any particular patterns specified as "<b>data-pattern</b>" attribute of input control. Also there is "data-min-pattern-length" parameter, used to specify minimum number of digits required to transform the input into nice number by pattern.
+to allow any particular patterns specified as "<b>data-pattern</b>" attribute of input control. There is also "<b>data-min-pattern-length</b>" parameter, used to specify minimum number of digits required to transform the input into nice number by pattern.
 
 Examples:<ul>
 
