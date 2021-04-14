@@ -51,6 +51,11 @@ var wReady=function(e,n){var t=document.readyState;n||"loading"!==t?"complete"!=
                 name="phone" id="dlg_phone_au" class="form-control place-bi"
                 placeholder="XXXX XXX XXX for Australia or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /></div>
 
+            <div class="mt-2"><label class="m-0" for="dlg_phone_any">Just test. No local number format specified, but several International patterns can be applied.</span></label></div>
+            <div><input type="tel" data-pattern="" data-min-pattern-length="2"
+                name="phone" id="dlg_phone_any" class="form-control place-bi"
+                placeholder="Type +XX for international number" spellcheck="false" maxlength="32" required autofocus /></div>
+
             <div class="mt-2"><label class="m-0" for="dlg_email">Email (with auto-completion of domain name):</label></div>
             <div class="position-relative"><input type="email" pattern="[\d\s\(\)\[\]\-\+\.,/]+"
                 name="email" id="dlg_email" class="form-control place-bi text-lowercase" data-domains="target.com, targettvspots.com"

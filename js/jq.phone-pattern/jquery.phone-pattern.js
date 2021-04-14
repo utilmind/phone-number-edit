@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.1
+ *  phone-pattern - 0.2.2
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com> 10.04.2021
@@ -12,10 +12,12 @@
         internationalPatterns = {
                  // pattern + minimum input length to start process the pattern
               1: ["(XXX) XXX-XXXX", 3], // USA and Canada
+             31: ["XX XXX XX XX;67,80,90:XXX XXX XXX", 2], // Netherlands. Leading 0 allowed for local number patterns.
              32: ["XX/XX XX XX;2,3,4,9:X/XXX XX XX", 2], // Belgium. Leading 0 allowed for local number patterns.
              33: ["XXX XX XX XX", 3], // France
              // 39: ["XXX XXXXXXXX", 3], // Italy. From 9 to 11 digits: http://www.self.gutenberg.org/articles/eng/Telephone_numbers_in_Italy
              44: ["XXXX XXX XXXX", 4], // UK. But it's a lot more complicated. TODO: add particular cases.
+             // 46: [";7:", 2], // Sweden TODO.
              48: ["XXX-XXX-XXX", 3], // Poland. This is mobiles. Stationery (fixed-line) numbers is XX-XXX-XX-XX. TODO: add particular cases.
              49: ["XXX-XXX-XXX", 3], // Germany. This is for mobiles. Stationery usually XXXX-XXX-XXXX.
              52: ["XX-XXX-XXXX", 2], // Mexico. Or XXX-XXX-XXXX. Always 10 digits.
@@ -25,7 +27,7 @@
             375: ["(XX) XXX-XX-XX", 2], // Belarus, but looks like the same as Ukraine.
             380: ["(XX) XXX-XX-XX", 2], // Ukraine. Mobiles only. Length of the area codes for stationery numbers may vary from 2 to 6 digits.
             420: ["XX XX XX XX;5,602:XXX XXX XXX", 3], // Chechia
-            995: ["(XXX) XXX XXX"], // Georgia.
+            995: ["(XXX) XXX XXX", 3], // Georgia.
         },
 
         phonePattern = function(input/*, options*/) {
@@ -39,9 +41,7 @@
                         : d;
                 },
 
-                phonePatterns = $field.data("pattern") || internationalPatterns[1][1], // USA is default. Typical format: data-pattern="2,3,4,9:(0X) XXX-XX-XX;(0XX) XX-XX-XX". When region starts with 2, 3, 4 or 9, phone number have 7 digits. Standard is 6 with 2-digits regional code. And with possible leading 0.
-                phonePattern = [],
-
+                phonePattern = $field.data("pattern"), // No default! Empty = no local pattern. Typical format: data-pattern="2,3,4,9:(0X) XXX-XX-XX;(0XX) XX-XX-XX". When region starts with 2, 3, 4 or 9, phone number have 7 digits. Standard is 6 with 2-digits regional code. And with possible leading 0.
                 phoneAllowZeroPrefix, // if ANY pattern allow 0 in prefix.
 
                 minPatternLength = $field.data("min-pattern-length") || 2,
@@ -79,7 +79,7 @@
                     return resPattern;
                 },
 
-                // AK: See also my MySQL func, patternize().
+                // AK: See also my MySQL func, patternize(): https://github.com/utilmind/phone-number-edit/blob/main/sql/patternize.sql
                 patternize = function(str, pattern, patternChar, rtl, trimToPattern) {
                     var len = str.length,
                         plen = pattern.length,
@@ -111,11 +111,11 @@
                         }
                     }
 
-                    if (!trimToPattern) {
-                        var addon = rtl ? str.substr(1) : str.substr(str);
+                    if (!trimToPattern) { // we reuse "i" from previous loop
+                        var addon = rtl ? str.substr(1) : str.substr(i);
                         res = rtl
                             ? (addon ? str.substr(1) + " " : "") + res
-                            : res + (addon ? " " + str.substr(str) : "");
+                            : res + (addon ? " " + str.substr(i) : "");
                     }
 
                     return res.trimStart(); // trim odd spaces. But allow last space of pattern
@@ -167,7 +167,7 @@
                         if (hasZeroPrefix = "0" === digPhone.charAt(0))
                             digPhone = digPhone.replace(/^0+/, ""); // now this is phone without leading zeros (they could be more than 1)
 
-                        if (curMinPatternLength > digPhone.length)
+                        if (!tempPattern.length || (curMinPatternLength > digPhone.length)) // no local patterns? Or length of input less than possible?
                             return phone; // nothing to do
                     }
 
@@ -209,7 +209,7 @@
 
 
             // PROCESS PATTERNS
-            phonePattern = preparePhonePatterns(phonePatterns, 1);
+            phonePattern = preparePhonePatterns(phonePattern, 1);
 
             // EVENTS
             $field.on("keypress", function(e) {

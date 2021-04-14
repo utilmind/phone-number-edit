@@ -269,7 +269,7 @@
       }).insertAfter($field);
 
       // Create the suggestion overlay.
-      me.$suggOverlay = $("<input "+(me.options.suggClass ? 'class="' + me.options.suggClass : "") + '" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
+      me.$suggOverlay = $("<input "+(me.options.suggClass ? 'class="' + me.options.suggClass : "") + '" tabindex="-1" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
         position: "absolute",
         display: "block",
         background: "transparent",
