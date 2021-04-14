@@ -36,3 +36,15 @@ Examples:<ul>
 <br />Standard pattern is 0XX/XX XX XX (2 digits area code + 6 digits number, with leading zero allowed), however several area codes, like 2&nbsp;(Brussels), 3&nbsp;(Antwerp), 4&nbsp;(Liège) and 9&nbsp;(Ghent) have 7-digit numbers: 0X/XXX XX XX.
 </li>
 </ul>
+
+
+### ALSO
+
+We have several SQL functions (compatible at least with MySQL/MariaDB, work on MySQL 5.X), that can natively format phone numbers by pattern right in the table triggers. Take a look in the "sql" directory for the following functions:
+  * <code>is_good_phone()</code> —
+  * <code>nice_phone_number()</code> —
+  * <code>patternize()</code> — 
+  * <code>leave_allowed_chars()</code> — remove all characters from string except specified set of allowed characters.
+  * <code>leave_numbers(str)</code> — strips all characters from string except digits (from 0 to 9). Does not use regular expressions, compatible with mySQL 5.x
+  * <code>leave_numbers_regexp(str)</code> — same as leave_numbers(), but use regular expressions, so works on mySQL 8.x+.
+  * <code>count_chars_in_str(str, ch)</code> — returns the number of occurances of some specific character in string
