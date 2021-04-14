@@ -280,6 +280,7 @@
         border: 0,
         zIndex: 9999,
         overflow: "hidden",
+        pointerEvents: "none",
 
         // ...uncomment code below to debug...
         // backgroundColor: "yellow",

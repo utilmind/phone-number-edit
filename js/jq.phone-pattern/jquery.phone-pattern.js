@@ -211,6 +211,10 @@
             // PROCESS PATTERNS
             phonePattern = preparePhonePatterns(phonePattern, 1);
 
+            // let's try to fix it immediately upon initialization.
+            if ($field.val())
+                makeNicePhone();
+
             // EVENTS
             $field.on("keypress", function(e) {
                 var curVal = this.value.trim(),
@@ -223,14 +227,15 @@
                 //if (curVal && 0 === selStart && curVal.length === selEnd)
                 //    curVal = "";
 
-                if ((0 === selStart) &&
+                if ((32 > keyCode) || // "Enter" (and possibly other conrol keys) are always allowed
+                    ((0 === selStart) &&
                       (
                          ("0" === ch && phoneAllowZeroPrefix && "0" !== curVal.charAt(0)) ||
                          ("+" === ch && "+" !== curVal.charAt(0))
                       )
-                   ) return; // ok
-
-                if (
+                   )) {
+                    // ok
+                }else if (
                      (!rePattern.test(ch) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
                        (0 === selStart && ("-" === ch || ")" === ch || "/" === ch || "." === ch))) ||
 
