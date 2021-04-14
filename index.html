@@ -1,8 +1,10 @@
+<!doctype html>
 <html>
 <head>
 <title>Phone number editor demo</title>
 
 <meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=11" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, shrink-to-fit=no" />
 <meta name="author" content="utilmind, 2021" />
 
@@ -29,17 +31,18 @@ var wReady=function(e,n){var t=document.readyState;n||"loading"!==t?"complete"!=
 
         <form method="post" id="myform" class="mt-4">
             <div><label class="m-0" for="dlg_phone">Phone number, USA: (XXX) XXX-XXXX</label></div>
-            <div><input type="tel" data-pattern="(XXX) XXX-XXXX" data-min-pattern-length="3"
+            <div><input type="tel" data-pattern="(XXX) XXX-XXXX" data-min-pattern-length="2"
                 name="phone" id="dlg_phone" class="form-control place-bi"
                 placeholder="(XXX) XXX-XXXX for the USA or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /></div>
 
-            <div class="mt-2"><label class="m-0" for="dlg_phone">Phone number, Ukraine: (0XX) XXX-XX-XX. <span class="text-muted">* btw this is good for mobile phones only. Regional stationery numbers can have more digits in brackets.</span></label></div>
+            <div class="mt-2"><label class="m-0" for="dlg_phone">Phone number, Ukraine: (0XX) XXX-XX-XX. <span class="text-muted">* btw this is good for mobile phones only. Regional area codes may have 2—6 digits in brackets.</span></label></div>
             <div><input type="tel" data-pattern="(0XX) XXX-XX-XX" data-min-pattern-length="2"
                 name="phone" id="dlg_phone" class="form-control place-bi"
                 placeholder="(XX) XXX-XX-XX for Ukraine or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /></div>
 
-            <div class="mt-2"><label class="m-0" for="dlg_phone">Phone number, Belgium: 0XX XX XX XX or 0X XXX XX XX.</span></label></div>
-            <div><input type="tel" data-pattern="0XX XX XX XX" data-pattern-alt="2,3,4,9:0X XXX XX XX;" data-min-pattern-length="2"
+            <div class="mt-2"><label class="m-0" for="dlg_phone">Phone number, Belgium: 0XX/XX XX XX or 0X/XXX XX XX.<br />
+              <span class="text-muted">Area codes 2 (Brussels), 3 (Antwerp), 4 (Liège) and 9 (Ghent) have 7 digits numbers. Other 2-digits area codes have 6 digit numbers.</span></label></div>
+            <div><input type="tel" data-pattern="0XX/XX XX XX; 2,3,4,9:0X/XXX XX XX" data-min-pattern-length="2"
                 name="phone" id="dlg_phone" class="form-control place-bi"
                 placeholder="XX XX XX XX for Belgium or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /></div>
 
@@ -60,6 +63,8 @@ var wReady=function(e,n){var t=document.readyState;n||"loading"!==t?"complete"!=
 <script>
 // <![CDATA[
 doInit(function() {
+    if ("undefined" === typeof $) return 1;
+
     $("#myform").on("submit", function(e) {
         e.preventDefault();
         alertify.success("Submitted...");

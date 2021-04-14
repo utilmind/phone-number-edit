@@ -1114,6 +1114,7 @@
 }
 .alertify .ajs-icon {
 	text-align: right;
+	box-sizing: content-box; /* AK 6.10.2020: exclusion kludge. To make margin between the text and icon */
 }
 .alertify .ajs-icon img {
 	margin-left: 18px;

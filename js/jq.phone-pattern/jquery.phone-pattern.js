@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.1
+ *  phone-pattern - 0.2
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com> 10.04.2021
@@ -8,7 +8,27 @@
     "use strict";
 
     var pluginName = "phonePattern",
-        phonePattern = function(input, options) {
+
+        internationalPatterns = {
+                 // pattern + minimum input length to start process the pattern
+              1: ["(XXX) XXX-XXXX", 3], // USA and Canada
+             32: ["XX/XX XX XX;2,3,4,9:X/XXX XX XX", 2], // Belgium. Leading 0 allowed for local number patterns.
+             33: ["XXX XX XX XX", 3], // France
+             // 39: ["XXX XXXXXXXX", 3], // Italy. From 9 to 11 digits: http://www.self.gutenberg.org/articles/eng/Telephone_numbers_in_Italy
+             44: ["XXXX XXX XXXX", 4], // UK. But it's a lot more complicated. TODO: add particular cases.
+             48: ["XXX-XXX-XXX", 3], // Poland. This is mobiles. Stationery (fixed-line) numbers is XX-XXX-XX-XX. TODO: add particular cases.
+             49: ["XXX-XXX-XXX", 3], // Germany. This is for mobiles. Stationery usually XXXX-XXX-XXXX.
+             52: ["XX-XXX-XXXX", 2], // Mexico. Or XXX-XXX-XXXX. Always 10 digits.
+             61: ["XXX XXX XXX", 3], // Australia. Not sure about format of fixed-line phones, but looks good for mobiles. Leading 0 allowed.
+             91: ["XX-XXX-XXXXX", 2], // India. Mobiles only. 2X-access (94 or 98), 3X-provider, 5X-subscriber
+            372: ["XXX XXXX;5,8:XXXX XXXX;", 3], // Estonia
+            375: ["(XX) XXX-XX-XX", 2], // Belarus, but looks like the same as Ukraine.
+            380: ["(XX) XXX-XX-XX", 2], // Ukraine. Mobiles only. Length of the area codes for stationery numbers may vary from 2 to 6 digits.
+            420: ["XX XX XX XX;5,602:XXX XXX XXX", 3], // Chechia
+            995: ["(XXX) XXX XXX"], // Georgia.
+        },
+
+        phonePattern = function(input/*, options*/) {
             var me = this,
                 $field = me.$field = $(input),
 
@@ -19,21 +39,45 @@
                         : d;
                 },
 
-                phonePattern = $field.data("pattern") || "(XXX) XXX-XXXX", // USA is default
-                phoneAltPattern = $field.data("pattern-alt"), // typical format: data-pattern-alt="2,3,4,9:0X XXX XX XX;". This is for Belgium. When region starts with 2, 3, 4 or 9, phone number have 7 characters. Standard is 6 with 2-digits regional code.
-                patternAltPrefixes = false, // filled if alternative patterns exists
+                phonePatterns = $field.data("pattern") || internationalPatterns[1][1], // USA is default. Typical format: data-pattern="2,3,4,9:(0X) XXX-XX-XX;(0XX) XX-XX-XX". When region starts with 2, 3, 4 or 9, phone number have 7 digits. Standard is 6 with 2-digits regional code. And with possible leading 0.
+                phonePattern = [],
 
-                originalPhonePattern = phonePattern,
-                originalAltPattern = false, // filled after parsing
-
-                phoneAllowZeroPrefix = ("0" === digitsOnly(phonePattern).charAt(0)),
+                phoneAllowZeroPrefix, // if ANY pattern allow 0 in prefix.
 
                 minPatternLength = $field.data("min-pattern-length") || 2,
-                localPhoneLength = phonePattern.replace(/[^X]/g, "").length,
+                curMinPatternLength = minPatternLength,
 
-                charPattern = $field.prop("pattern") || "[\\d\\s\\(\\)\\[\\]\\-–—\\.,/]", // pattern="[\d\s\(\)\[\]\-–—\.,/]+"
+                curPhoneLength,
+
+                charPattern = $field.prop("pattern") || "[\\d\\s\\(\\)\\[\\]\\+\\-–—\\.,/]+",
                 rePattern = new RegExp(charPattern),
                 prevVal,
+
+                preparePhonePatterns = function(phonePatterns, setDefaults) {
+                    var i, resPattern = [];
+
+                    phonePatterns = phonePatterns.split(";");
+                    for (i in phonePatterns) {
+                        var arr = phonePatterns[i].split(":"),
+                            str, str2,
+                            prefix = "";
+
+                        if (str = arr[0].trim()) { // if pattern not empty
+                            if (arr[1] && (str2 = arr[1].trim())) {
+                                prefix = new RegExp("^("+ str.replace(/,/g, "|") +")");
+                                str = str2;
+                            }
+
+                            if (setDefaults && !phoneAllowZeroPrefix) // check if ANY pattern allow 0-prefix
+                                phoneAllowZeroPrefix = "0" === digitsOnly(str).charAt(0);
+
+                            resPattern.push([str, // 0 = original pattern
+                                             setDefaults ? stripPatternLeading0(str) : str, // w/o leading 0. But still the pattern. The same as str, if str has no leading 0.
+                                             prefix]); // prefix of the number, that may change the pattern
+                        }
+                    }
+                    return resPattern;
+                },
 
                 // AK: See also my MySQL func, patternize().
                 patternize = function(str, pattern, patternChar, rtl, trimToPattern) {
@@ -43,9 +87,6 @@
                         pi = rtl ? plen-1 : 0,
 
                         res = "";
-
-                    if (minPatternLength > len) // less length don't need patternization.
-                        return str;
 
                     if (0 < plen) {
                         if (!patternChar) patternChar = "X";
@@ -70,105 +111,107 @@
                         }
                     }
 
-                    if (!trimToPattern)
+                    if (!trimToPattern) {
+                        var addon = rtl ? str.substr(1) : str.substr(str);
                         res = rtl
-                            ? str.substr(1) + " " + res
-                            : res + " " + str.substr(str);
+                            ? (addon ? str.substr(1) + " " : "") + res
+                            : res + (addon ? " " + str.substr(str) : "");
+                    }
 
-                    return res.trim(); // trim odd spaces
+                    return res.trimStart(); // trim odd spaces. But allow last space of pattern
                 },
 
                 makeNicePhone = function() {
                     var phone = $field.val().trim(),
                         digPhone,
                         tempPattern,
-                        tempAltPattern,
-                        tempAltPrefixes,
                         tempAllowZeroPrefix,
+                        tempCountryCodeLength,
                         prefix = "";
 
+                    curPhoneLength = 0; // no limit for typing
                     if ("+" === phone.charAt(0)) {
                         digPhone = digitsOnly(phone, 1); // trim all zeros in the beginning. There is no international phones starting with "0".
 
                         // TODO: get all country codes, to know their length + know pattern for each country
                         // ... but okay, let's do it for the USA...
 
-                        tempAltPrefixes = false;
-                        tempAltPattern = false;
-                        tempAllowZeroPrefix = false;
+                        for (prefix in internationalPatterns)
+                            if (prefix == phone.substr(1, prefix.length)) {
+                                tempPattern = internationalPatterns[prefix][0];
+                                curMinPatternLength = internationalPatterns[prefix][1];
+                                break;
+                            }
 
-                        if ("1" === digPhone.charAt(0)) {
-                            tempPattern = "(XXX) XXX-XXXX"; // USA pattern
-                            digPhone = digPhone.substr(1);
-                            prefix = "+1 ";
-                        }else if ("380" === digPhone.substr(0, 3)) {
-                            tempPattern = "(XX) XXX-XX-XX"; // Ukraine
-                            digPhone = digPhone.substr(3);
-                            prefix = "+380 ";
-                        }else if ("32" === digPhone.substr(0, 2)) {
-                            tempPattern = "XX XX XX XX"; // Belgium
-                            tempAltPattern = "X XXX XX XX";
-                            tempAltPrefixes = new RegExp("^(2|3|4|9)");
-                            digPhone = digPhone.substr(2);
-                            prefix = "+32 ";
-                        }else if ("61" === digPhone.substr(0, 2)) {
-                            tempPattern = "XXX XXX XXX"; // Australia
-                            digPhone = digPhone.substr(2);
-                            prefix = "+61 ";
-                        }else
+                        if (!tempPattern)
                             return phone; // do nothing
 
+                        tempPattern = preparePhonePatterns(tempPattern);
+                        digPhone = digPhone.substr(tempCountryCodeLength = prefix.length);
+
+                        tempAllowZeroPrefix = false; // ATTN! There is no patterns that allow 0-prefix! We use "+(country code)" instead!
+
+                        prefix = "+" + prefix + " ";
                     }else {
                         digPhone = digitsOnly(phone),
                         tempPattern = phonePattern;
-                        tempAltPattern = phoneAltPattern;
-                        tempAltPrefixes = patternAltPrefixes;
+
                         tempAllowZeroPrefix = phoneAllowZeroPrefix;
+                        tempCountryCodeLength = 0;
+
+                        curMinPatternLength = minPatternLength;
                     }
 
                     // next stage
-                    var haveZeros,
-                        phoneLength = digPhone.length;
+                    var phoneLength = digPhone.length;
 
-                    if (minPatternLength < phoneLength) {
-                        digPhone = digPhone.replace(/^0+/, "");
+                    if (prefix || curMinPatternLength - (phoneAllowZeroPrefix && "0" !== digPhone.charAt(0) ? 1 : 0) < phoneLength) {
+                        if (!prefix)
+                            digPhone = digPhone.replace(/^0+/, ""); // now this is phone without leading zeros (they could be more than 1)
 
-                        var useAltPattern = tempAltPrefixes && tempAltPrefixes.test(digPhone);
-                        if (useAltPattern)
-                            tempPattern = tempAltPattern;
+                        if (curMinPatternLength <= digPhone.length + prefix.length) { // length is enough for patternization
 
-                        // local numbers only with possible 0-prefix...
-                        if (tempAllowZeroPrefix && digPhone.length !== phoneLength)
-                            tempPattern = useAltPattern ? originalAltPattern : originalPhonePattern;
+                            var i, thisPattern, defPattern, usePattern;
+                            for (i in tempPattern) {
+                                thisPattern = tempPattern[i];
+                                if (!thisPattern[2]) { // no alts
+                                    if (!defPattern)
+                                        defPattern = thisPattern;
 
-                        $field.val(prefix + patternize(digPhone, tempPattern));
+                                }else if (thisPattern[2].test(digPhone)) { // has alts + this number corresponds it
+                                    usePattern = thisPattern;
+                                    break;
+                                }
+                            }
+                            if (!usePattern) usePattern = defPattern;
+                            usePattern = usePattern[tempAllowZeroPrefix && digPhone.length !== phoneLength ? 0 : 1]; // with or w/o leading zeros
+
+                            // update input
+                            $field.val(prefix + patternize(digPhone, usePattern));
+
+                            // set new limit for typing
+                            curPhoneLength = usePattern.replace(/[^X]/g, "").length + tempCountryCodeLength;
+                        }
                     }
                 },
 
                 stripPatternLeading0 = function(pattern) {
                     // does phone pattern allows 0 as prefix?
                     var phoneAllowZeroPrefix = ("0" === digitsOnly(pattern).charAt(0));
-                    if (phoneAllowZeroPrefix) 
-                        pattern = pattern.replace("0", ""); // 1st is enough. No regexp required
+                    if (phoneAllowZeroPrefix)
+                        pattern = pattern.replace("0", ""); // cut 1st 0 only. ATTN! It's not 1st char, only 1st 0. Pattern an be "(0..."
                     return pattern;
                 };
 
-            me.options = $.extend({}, options);
 
-            // alternative patterns
-            if (phoneAltPattern) {
-                var altPatterns = phoneAltPattern.split(";"), // TODO: support of multiple alternative patterns
-                    altPattern = altPatterns[0].split(":");
+            // OPTIONS... But we don't use any. Let's keep it commented for a while.
+            // me.options = $.extend({}, options);
 
-                if (altPattern[0] && altPattern[1]) {
-                    patternAltPrefixes = new RegExp("^("+ altPattern[0].replace(/,/g, "|") +")");
-                    phoneAltPattern = stripPatternLeading0(originalAltPattern = altPattern[1]);
-                }
-            }
 
-            // does phone pattern allows 0 as prefix?
-            phonePattern = stripPatternLeading0(phonePattern);
+            // PROCESS PATTERNS
+            phonePattern = preparePhonePatterns(phonePatterns, 1);
 
+            // EVENTS
             $field.on("keypress", function(e) {
                 var curVal = this.value.trim(),
                     selStart = e.target.selectionStart,
@@ -176,44 +219,59 @@
                     keyCode = e.keyCode,
                     ch = String.fromCharCode(keyCode);
 
-                if (curVal && 0 === selStart && curVal.length === selEnd)
-                    curVal = "";
+                // whole text selected? UPD 14.04.2021. We don't need it after allowing to make insertions even if length of number exceeds the limit.
+                //if (curVal && 0 === selStart && curVal.length === selEnd)
+                //    curVal = "";
 
-                if ((("+" === ch) && 
-                     (("" !== curVal) &&
-                      ((0 !== selStart) || ("+" === curVal.charAt(0)))
-                     ))
+                if ((0 === selStart) &&
+                      (
+                         ("0" === ch && phoneAllowZeroPrefix && "0" !== curVal.charAt(0)) ||
+                         ("+" === ch && "+" !== curVal.charAt(0))
+                      )
+                   ) return; // ok
 
-                     || ("+" !== ch && !rePattern.test(ch)) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
-                         ("" === curVal &&
-                             (("-" === ch) ||
-                              ("0" === ch && !phoneAllowZeroPrefix))
-                         )
-                   ) {
+                if (
+                     (!rePattern.test(ch) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
+                       (0 === selStart && ("-" === ch || ")" === ch || "/" === ch || "." === ch))) ||
+
+                    (0 !== selStart && "+" === ch) ||
+
+                    (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) &&
+                      // (selStart === selEnd) && // no selection
+                      // UPD 14.04.2021: I decided to allow any insertions. If user inserts then user missed something, returned to position and know what they doing. Let's allow this.
+                      (selStart === curVal.length) && // end of the string
+                      8 !== keyCode && 46 !== keyCode) // backspace or del
+                   )
                     e.preventDefault();
-                }
 
-                if (localPhoneLength && (localPhoneLength <= digitsOnly(curVal, 1).length) &&
-                    (selStart === selEnd) &&
-                    ("+" !== curVal.charAt(0)) &&
-                    32 !== keyCode && 8 !== keyCode && 46 !== keyCode) {
-                    e.preventDefault();
-                }
 
             }).on("keyup", function(e) {
                 var curVal = this.value,
                     digitsCurVal = digitsOnly(curVal.trim());
 
-                if ((8 !== e.keyCode) && // 8 = backspace
-                    ("" !== digitsCurVal) &&
-                    (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) &&
-                    (e.target.selectionStart === curVal.length)) {
-                        makeNicePhone();
+                if (e.target.selectionStart === curVal.length && // is end
+                        ("" !== digitsCurVal)) {
 
-                        prevVal = this.value.trim(); // update
+                    if (8 === e.keyCode) { // 8 = backspace
+                        this.value = prevVal = this.value.replace(/[^\d]+$/, "");
+
+                    }else if // if NOT backspace AND...
+                        (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
+                            makeNicePhone();
+                            prevVal = this.value.trim(); // update
+                    }
                 }
 
-            }).on("blur", function(e) {
+            }).on("paste", function(e) {
+                  var dataSource = e.originalEvent.clipboardData || window.clipboardData, // second is IE11
+                      paste = dataSource.getData("text"); // second is IE11
+
+                  if (paste) {
+                      e.preventDefault();
+                      this.value = paste.match(rePattern).join();
+                  }
+
+            }).on("paste blur", function(e) {
                 makeNicePhone();
             });
         };
