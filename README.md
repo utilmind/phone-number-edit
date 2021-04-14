@@ -15,10 +15,10 @@ to allow any particular patterns specified as "data-pattern" attribute of input 
 Examples:<ul>
 
 <li>USA and Canada:<br />
- <code>
-<input type="tel" data-pattern="(XXX) XXX-XXXX" data-min-pattern-length="2"
+<code>
+&lt;input type="tel" data-pattern="(XXX) XXX-XXXX" data-min-pattern-length="2"
                 name="phone" id="dlg_phone" class="form-control place-bi"
-                placeholder="(XXX) XXX-XXXX for the USA or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus />
+                placeholder="(XXX) XXX-XXXX for the USA or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /&gt;
 </code>
 </li>
 <li>Ukraine<br />
