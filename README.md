@@ -48,3 +48,7 @@ We have several SQL functions (compatible at least with MySQL/MariaDB, work on M
   * <code>leave_numbers(str)</code> — strips all characters from string except digits (from 0 to 9). Does not use regular expressions, compatible with mySQL 5.x
   * <code>leave_numbers_regexp(str)</code> — same as leave_numbers(), but use regular expressions, so works on mySQL 8.x+.
   * <code>count_chars_in_str(str, ch)</code> — returns the number of occurances of some specific character in string
+
+### email-autocomplete
+
+Demo has input control for email with auto-completion of domain name. See it @ https://github.com/utilmind/email-autocomplete
