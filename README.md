@@ -41,9 +41,9 @@ Examples:<ul>
 ### ALSO
 
 We have several SQL functions (compatible at least with MySQL/MariaDB, work on MySQL 5.X), that can natively format phone numbers by pattern right in the table triggers. Take a look in the "sql" directory for the following functions:
-  * <code>is_good_phone()</code> —
-  * <code>nice_phone_number()</code> —
-  * <code>patternize()</code> — 
+  * <code>is_good_phone(phone, local_phone_length, local_country_code)</code> — validate the phone number, returns TRUE (1) if entered in correct format and FALSE (0) otherwise. Mostly used to validate local phone numbers without "+" (prefix of internation numbers). It check out required number of digits, specfied by <code>local_phone_length</code> parameter. But also it can automatically validate some internation numbers, such like USA/Canada (+1), Australia (+61), Mexico (+52), India (+91), China (+86), Ukraine (+380), etc.
+  * <code>nice_phone_number(phone, local_phone_pattern, local_country_code, add_local_country_code)</code> — make nice looking phone number by specified pattern. Prepare number only by the pattern specified by <code>local_phone_pattern</code>. Does not touch international phone numbers, that differs from <code>local_country_code</code>.
+  * <code>patternize(str, pattern, pattern_char, rtl, trim_to_pattern)</code> — put the characters from string into specified pattern. Patterns may have any custom formats, like "[CCC]-(CCC)-{CCC}", where C is the <code>pattern_char</code>. <code>rtl</code> used to specify is right-to-left direction of processing, <code>trim_to_pattern</code> can be used to remove or leave extra-characters that exceed the length of pattern.
   * <code>leave_allowed_chars()</code> — remove all characters from string except specified set of allowed characters.
   * <code>leave_numbers(str)</code> — strips all characters from string except digits (from 0 to 9). Does not use regular expressions, compatible with mySQL 5.x
   * <code>leave_numbers_regexp(str)</code> — same as leave_numbers(), but use regular expressions, so works on mySQL 8.x+.
