@@ -33,6 +33,6 @@ Examples:<ul>
 <li><code>&lt;input type="tel" data-pattern="<b>0XX/XX XX XX; 2,3,4,9:0X/XXX XX XX</b>" data-min-pattern-length="2"
                 name="phone" id="dlg_phone" class="form-control place-bi"
                 placeholder="XX XX XX XX for Belgium or +XX ... for international number" spellcheck="false" maxlength="32" required autofocus /&gt;</code>
-<br />Standard pattern is 0XX/XX XX XX (2 digits area code + 6 digits number, with leading zero allowed), however several area codes 2 (Brussels), 3 (Antwerp), 4 (Liège) and 9 (Ghent) have 7-digit numbers: 0X/XXX XX XX.
+<br />Standard pattern is 0XX/XX XX XX (2 digits area code + 6 digits number, with leading zero allowed), however several area codes, like 2&nbsp;(Brussels), 3&nbsp;(Antwerp), 4&nbsp;(Liège) and 9&nbsp;(Ghent) have 7-digit numbers: 0X/XXX XX XX.
 </li>
 </ul>
