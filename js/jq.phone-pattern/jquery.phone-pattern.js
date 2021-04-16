@@ -211,10 +211,6 @@
             // PROCESS PATTERNS
             phonePattern = preparePhonePatterns(phonePattern, 1);
 
-            // let's try to fix it immediately upon initialization.
-            if ($field.val())
-                makeNicePhone();
-
             // EVENTS
             $field.on("keypress", function(e) {
                 var curVal = this.value.trim(),
@@ -276,7 +272,7 @@
                       this.value = paste.match(rePattern).join();
                   }
 
-            }).on("paste blur", function(e) {
+            }).on("paste change", function(e) { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
                 makeNicePhone();
             });
         };
