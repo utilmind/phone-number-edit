@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.3 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -12,14 +12,20 @@
  *    2. I have dropped support of legacy functionality. ECMAScript 5 (released in 2009) required to run this code.
  *       See Array.indexOf(), Array.isArray(), Array.forEach() etc. I could rewrite it with legacy code, but don't want to do this.
  *
+ *  Attributes for individual customization:
+ *    * data-complete-onblur="1"		-- auto-completes the suggestion on blur (on switching the input focus out)
+ *    * data-domains="domain1.com, domain2.com"	-- allows to specify additional domains for autocompletion. And they have higher priority than default domains.
+ *
  */
 (function($, window, document, undefined) {
   "use strict";
 
   var pluginName = "emailautocomplete",
       defaults = {
+        completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
+
         suggClass: "tt-hint", // "eac-sugg", // AK original classname, but I prefer to use just simple color. Some time ago here was "suggColor", but inline styles are unsafe for CSP, so let's use only class.
-        domains: [], // add custom domains here
+        domains: [], // add custom domains here, or in attribute: data-domains="domain1.com, domain2.com"
         defDomains: [ // you may override default domains setting up the "defDomains".
           "gmail.com",
           "googlemail.com",
@@ -194,9 +200,15 @@
   function emailAutocomplete(input, options) {
       var me = this,
           $field = me.$field = $(input),
+
+          completeOnBlur = $field.data("complete-onblur"),
           inputDomains = $field.data("domains");
+          
 
       me.options = $.extend({}, defaults, options);
+
+      if ("" !== completeOnBlur) // if value specified -- use as specified
+          me.options.completeOnBlur = completeOnBlur;
 
       inputDomains = inputDomains
           ? inputDomains.split(",").map(function(s) { return s.trim(); }) // trim all domains
@@ -271,7 +283,7 @@
       // Create the suggestion overlay.
       me.$suggOverlay = $("<input "+(me.options.suggClass ? 'class="' + me.options.suggClass : "") + '" tabindex="-1" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
         position: "absolute",
-        display: "block",
+        display: "none",
         background: "transparent",
         top: 0,
         left: 0,
@@ -297,7 +309,7 @@
             .on("keydown", $.proxy(function(e) {
                 if (me.suggestion) {
                   var key = e.keyCode || e.which;
-                  if (((37 < key) && (41 > key)) || (9 === key) || (13 === key)) { // top-right-bottom & tab
+                  if (((37 < key) && (41 > key)) || (13 === key)) { // top-right-bottom. Don't use 9 (TAB). It's like "blur".
                     if (13 === key) {
                       e.stopPropagation();
                       e.preventDefault();
@@ -314,7 +326,8 @@
                 }
 
                 me.$suggOverlay.css("visibility", "hidden");
-                me.autocomplete();
+                if (me.options.completeOnBlur)
+                    me.autocomplete();
               }, me))
 
             // AK: the craziest CSS's can modify the padding on focused controls. We must watch them.
@@ -364,7 +377,7 @@
 
         // update suggested text
         $calc.text(me.val);
-        $sugg.val(me.suggestion);
+        $sugg.val(me.suggestion).show();
 
         $sugg.css("top",
             fieldPos.top +
@@ -387,7 +400,7 @@
         var me = this;
         if (me.suggestion) {
             me.$field.val(me.val + me.suggestion);
-            me.$suggOverlay.text("");
+            me.$suggOverlay.val("").hide();
             // me.$calcText.text("");
 
             me.$field.trigger("input"); // AK 21.09.2020. We need it to validate field immediately after auto-completion. It's normal "input". It's okay. No additional events required.
