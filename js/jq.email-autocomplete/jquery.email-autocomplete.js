@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.1 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -15,6 +15,8 @@
  *  Attributes for individual customization:
  *    * data-complete-onblur="1"		-- auto-completes the suggestion on blur (on switching the input focus out)
  *    * data-domains="domain1.com, domain2.com"	-- allows to specify additional domains for autocompletion. And they have higher priority than default domains.
+ *    * data-valid-class="className"		-- automatically validate syntax of entered email and put this class if email IS VALID.
+ *    * data-invalid-class="className"		-- automatically validate syntax of entered email and put this class if email IS INVALID.
  *
  */
 (function($, window, document, undefined) {
@@ -23,6 +25,8 @@
   var pluginName = "emailautocomplete",
       defaults = {
         completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
+        validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID.
+        invalidClass: "is-invalid", // automatically validate syntax of entered email and put this class if email IS INVALID.
 
         suggClass: "tt-hint", // "eac-sugg", // AK original classname, but I prefer to use just simple color. Some time ago here was "suggColor", but inline styles are unsafe for CSP, so let's use only class.
         domains: [], // add custom domains here, or in attribute: data-domains="domain1.com, domain2.com"
@@ -174,6 +178,7 @@
         ],
       }; // end of defaults
 
+  // -- @private
   // AK: it's good enough to be canonized somewhere separately
   function copyCSS(targetEl, sourceElOrVal, styleName) {
       if (Array.isArray(styleName)) {
@@ -190,26 +195,42 @@
       }
   }
 
-  // we already have fl0at() in utilmind's commons.js, but this script could be loaded before commons. Let's make it little bit more independant.
-  function fl0at(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
-      return isNaN(v = parseFloat(v))
-          ? def || 0
-          : v;
+  // -- Polyfills if there is no utilmind's commons.
+
+  if ("function" !== typeof fl0at) {// we already have fl0at() in utilmind's commons.js, but this script could be loaded before commons. Let's make it little bit more independant.
+      function fl0at(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
+          return isNaN(v = parseFloat(v))
+              ? def || 0
+              : v;
+      }
   }
 
+  if (!String.prototype.isValidEmail) { // we may already have it from utilmind's commons.
+      // see also is_valid_email() in "strings.php".
+      String.prototype.isValidEmail = function() {
+          return /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,30}(?:\.[a-z]{2})?)$/i.test(this.trim()); /// the longest domain extension in 2015 was ".cancerresearch", and looks like it's not the limit. UPD. how about .travelersinsurance? I set up it the longest domain extension to 30 chars.
+      }
+  }
+
+
+  // -- GO!
   function emailAutocomplete(input, options) {
       var me = this,
           $field = me.$field = $(input),
 
           completeOnBlur = $field.data("complete-onblur"),
-          inputDomains = $field.data("domains");
-          
+          inputDomains = $field.data("domains"),
+          validClass = $field.data("valid-class"),
+          invalidClass = $field.data("invalid-class");
+
 
       me.options = $.extend({}, defaults, options);
 
-      if ("" !== completeOnBlur) // if value specified -- use as specified
+  // BLUR
+      if (undefined !== completeOnBlur) // if value specified -- use as specified, even "" is value.
           me.options.completeOnBlur = completeOnBlur;
 
+  // DOMAINS
       inputDomains = inputDomains
           ? inputDomains.split(",").map(function(s) { return s.trim(); }) // trim all domains
           : [];
@@ -217,6 +238,12 @@
       me._domains = me.options.domains
           .concat(inputDomains,
                   me.options.defDomains); // arrays with domains, default + 2nd priority default and custom lists
+
+  // VALIDATION
+      if (undefined !== validClass)
+          me.options.validClass = validClass;
+      if (undefined !== invalidClass)
+          me.options.invalidClass = invalidClass;
 
       me.init();
   }
@@ -334,6 +361,20 @@
             //     I'm adding the watching for the focused elements, but keep in mind, that there is a lot more pseudo-classes,
             //     which can completely change the look of the control, eg :hover, :enabled/:disabled, :read-only, :default, :required, :fullscreen, :valid/:invalid and so forth.
             .on("focus", $.proxy(applyFocusedStyles, me));
+
+
+      var validClass = me.options.validClass,
+          invalidClass = me.options.invalidClass;
+      if (validClass || invalidClass)
+          $field.on("change", function() {
+                var val = this.value,
+                    isValidEmail = !!val && val.isValidEmail();
+
+                if (validClass)
+                    $field.toggleClass(validClass, isValidEmail);
+                if (invalidClass)
+                    $field.toggleClass(invalidClass, !!val && !isValidEmail);
+            });
 
       // touchstart jquery 1.7+
       me.$suggOverlay.on("mousedown touchstart", $.proxy(me.autocomplete, me));

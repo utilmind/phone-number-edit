@@ -30,6 +30,9 @@
             995: ["(XXX) XXX XXX", 3], // Georgia.
         },
 
+        // @private
+        reBrackets = new RegExp("[\\(\\){}\\[\\]<>'\"’`“”«»]"),
+
         phonePattern = function(input/*, options*/) {
             var me = this,
                 $field = me.$field = $(input),
@@ -103,7 +106,7 @@
                                 if (rtl ? 0 === pi || 0 === i : plen < pi-1 || len < i-1) {
                                     pch = pattern.charAt(pi);
 
-                                    if (pch !== patternChar && new RegExp("[\\(\\){}\\[\\]<>'\"’`“”«»]").test(pch)) // brackets and quotes.
+                                    if (pch !== patternChar && reBrackets.test(pch)) // brackets and quotes.
                                         res = rtl ? pch + res : res + pch;
                                 }
                             }else
