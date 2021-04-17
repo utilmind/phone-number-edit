@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.1 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.2 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -15,8 +15,15 @@
  *  Attributes for individual customization:
  *    * data-complete-onblur="1"		-- auto-completes the suggestion on blur (on switching the input focus out)
  *    * data-domains="domain1.com, domain2.com"	-- allows to specify additional domains for autocompletion. And they have higher priority than default domains.
- *    * data-valid-class="className"		-- automatically validate syntax of entered email and put this class if email IS VALID.
- *    * data-invalid-class="className"		-- automatically validate syntax of entered email and put this class if email IS INVALID.
+ *
+ *    * data-valid-class="className"		-- automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
+ *    * data-invalid-class="className"		-- automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+ *    * data-valid-show="#element"		-- element id to *show* when email IS VALID (and hide when invalid or unspecified).
+ *    * data-invalid-show="#element"		-- element id to *show* when email IS INVALID (and hiden when valid or unspecified).
+ *
+ *  Events:
+ *    * autocomplete(e)			-- triggered after auto-completion. This is additionally to regular "change" event.
+ *    * validate(e, isEmailValid)	-- triggered on validation. isEmailValid can be either TRUE, FALSE or "undefined", when input is empty.
  *
  */
 (function($, window, document, undefined) {
@@ -25,8 +32,8 @@
   var pluginName = "emailautocomplete",
       defaults = {
         completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
-        validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID.
-        invalidClass: "is-invalid", // automatically validate syntax of entered email and put this class if email IS INVALID.
+        validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
+        invalidClass: "is-invalid", // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
 
         suggClass: "tt-hint", // "eac-sugg", // AK original classname, but I prefer to use just simple color. Some time ago here was "suggColor", but inline styles are unsafe for CSP, so let's use only class.
         domains: [], // add custom domains here, or in attribute: data-domains="domain1.com, domain2.com"
@@ -244,6 +251,9 @@
           me.options.validClass = validClass;
       if (undefined !== invalidClass)
           me.options.invalidClass = invalidClass;
+  // ... little bit more
+      me.options.validShow = $field.data("valid-show");
+      me.options.invalidShow = $field.data("invalid-show");
 
       me.init();
   }
@@ -288,7 +298,8 @@
             copyFont(me.$calcText);
             copyFont(me.$suggOverlay);
 
-            me.$suggOverlay.css("visibility", "visible");
+            //me.$suggOverlay.css("visibility", "visible");
+            // me.$suggOverlay.show();
           };
 
       // capitalized emails looking TOTALLY weird when capitalized text torns apart, like Name@GmAil.Com etc. First character of suggested part will be capitalized too, and it's wrong.
@@ -298,42 +309,42 @@
 
       // create container to test width of current val
       me.$calcText = $("<span />").css({
-        position: "absolute",
-        visibility: "hidden",
-        top: -999, // this will hide an element even if some weird CSS will enable visibility.
-        display: "block",
-        margin: 0, // we only calculate the width of the text. We don't need anything more. Set everything to 0 for sure.
-        padding: 0,
-        border: 0,
+          position: "absolute",
+          visibility: "hidden",
+          top: -999, // this will hide an element even if some weird CSS will enable visibility.
+          display: "block",
+          margin: 0, // we only calculate the width of the text. We don't need anything more. Set everything to 0 for sure.
+          padding: 0,
+          border: 0,
       }).insertAfter($field);
 
       // Create the suggestion overlay.
       me.$suggOverlay = $("<input "+(me.options.suggClass ? 'class="' + me.options.suggClass : "") + '" tabindex="-1" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
-        position: "absolute",
-        display: "none",
-        background: "transparent",
-        top: 0,
-        left: 0,
-        margin: 0,
-        padding: 0,
-        border: 0,
-        zIndex: 9999,
-        overflow: "hidden",
-        pointerEvents: "none",
+          position: "absolute",
+          display: "none",
+          background: "transparent",
+          top: 0,
+          left: 0,
+          margin: 0,
+          padding: 0,
+          border: 0,
+          zIndex: 9999,
+          overflow: "hidden",
+          // pointerEvents: "none", // NO! We should be able to click on suggestion to auto-complete the input!
 
-        // ...uncomment code below to debug...
-        // backgroundColor: "yellow",
-        // opacity: 0.8,
+          // ...uncomment code below to debug...
+          // backgroundColor: "yellow",
+          // opacity: 0.8,
       }).insertAfter($field);
 
       // if already focued -- apply styles immediately. Regular onFocus will not be triggered.
       if ($field.is(":focus"))
-        applyFocusedStyles();
+          applyFocusedStyles();
 
       // bind events and handlers
-      $field.on("keyup", $.proxy(me.displaySuggestion, me))
+      $field.on("keyup", $.proxy(me.displaySuggestion, me)
 
-            .on("keydown", $.proxy(function(e) {
+            ).on("keydown", function(e) {
                 if (me.suggestion) {
                   var key = e.keyCode || e.which;
                   if (((37 < key) && (41 > key)) || (13 === key)) { // top-right-bottom. Don't use 9 (TAB). It's like "blur".
@@ -344,40 +355,54 @@
                     me.autocomplete();
                   }
                 }
-              }, me))
 
-            .on("blur", $.proxy(function(e) {
+            }).on("blur", function() {
                 if (me.restoreAlign) {
                     $field.css("textAlign", me.restoreAlign);
                     me.restoreAlign = null;
                 }
 
-                me.$suggOverlay.css("visibility", "hidden");
                 if (me.options.completeOnBlur)
                     me.autocomplete();
-              }, me))
+                else
+                    me.$suggOverlay.hide(); // css("visibility", "hidden");
 
             // AK: the craziest CSS's can modify the padding on focused controls. We must watch them.
             //     I'm adding the watching for the focused elements, but keep in mind, that there is a lot more pseudo-classes,
             //     which can completely change the look of the control, eg :hover, :enabled/:disabled, :read-only, :default, :required, :fullscreen, :valid/:invalid and so forth.
-            .on("focus", $.proxy(applyFocusedStyles, me));
+            }).on("focus", function() {
+                applyFocusedStyles();
+                if (me.$suggOverlay.val())
+                    me.$suggOverlay.show();
 
+            }).on("change", function() {
+                var validClass = me.options.validClass,
+                    invalidClass = me.options.invalidClass,
 
-      var validClass = me.options.validClass,
-          invalidClass = me.options.invalidClass;
-      if (validClass || invalidClass)
-          $field.on("change", function() {
-                var val = this.value,
-                    isValidEmail = !!val && val.isValidEmail();
+                    validShow = me.options.validShow,
+                    invalidShow = me.options.invalidShow,
+
+                    val = this.value,
+                    isValidEmail = !!val && val.isValidEmail(),
+                    isInvalidEmail = !!val && !isValidEmail;
+
+                me.$field.trigger("validate", !!val ? isValidEmail : undefined);
 
                 if (validClass)
                     $field.toggleClass(validClass, isValidEmail);
                 if (invalidClass)
-                    $field.toggleClass(invalidClass, !!val && !isValidEmail);
+                    $field.toggleClass(invalidClass, isInvalidEmail);
+
+                if (validShow)
+                    $(validShow).toggle(isValidEmail);
+                if (invalidShow)
+                    $(invalidShow).toggle(isInvalidEmail);
             });
 
       // touchstart jquery 1.7+
-      me.$suggOverlay.on("mousedown touchstart", $.proxy(me.autocomplete, me));
+      me.$suggOverlay.on("mousedown touchstart", function() {
+          me.autocomplete();
+      });
     },
 
     suggest: function(str) {
@@ -414,7 +439,6 @@
             e.preventDefault();
 
         copyCSS($sugg, $field, [ "width", "height" /*, "padding", "border"*/ ]); // for some reason "padding" and border doesn't work properly on Firefox. We should calculate position in other way.
-        // $sugg.css("borderColor", "transparent");
 
         // update suggested text
         $calc.text(me.val);
@@ -423,8 +447,6 @@
         $sugg.css("top",
             fieldPos.top +
             fl0at($field.css("marginTop"))
-            //fl0at($field.css("borderTopWidth")) +
-            //fl0at($field.css("paddingTop"))
         );
 
         $sugg.css("left",
@@ -442,9 +464,15 @@
         if (me.suggestion) {
             me.$field.val(me.val + me.suggestion);
             me.$suggOverlay.val("").hide();
-            // me.$calcText.text("");
 
-            me.$field.trigger("input"); // AK 21.09.2020. We need it to validate field immediately after auto-completion. It's normal "input". It's okay. No additional events required.
+            me.$field
+                .trigger("change") // AK 21.09.2020. We need it to validate field immediately after auto-completion. It's normal "change". It's okay. No additional events required. UPD. before 17.04.2021 "input" triggered instead.
+                .trigger("autocomplete");
+
+            // wait while mousedown/click on $suggOverlay is processed.
+            setTimeout(function() {
+                me.$field.trigger("focus");
+            }, 0);
         }
     },
   };
