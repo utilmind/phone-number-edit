@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.2 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.3 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -382,7 +382,7 @@
                     isValidEmail = !!val && val.isValidEmail(),
                     isInvalidEmail = !!val && !isValidEmail;
 
-                me.$field.trigger("validate", !!val ? isValidEmail : undefined);
+                $field.trigger("validate", !!val ? isValidEmail : undefined);
 
                 if (validClass)
                     $field.toggleClass(validClass, isValidEmail);
@@ -457,11 +457,11 @@
 
     autocomplete: function() {
         var me = this;
+
         if (me.suggestion) {
-            me.$field.val(me.val + me.suggestion);
             me.$suggOverlay.val("").hide();
 
-            me.$field
+            $field.val(me.val + me.suggestion)
                 .trigger("change") // AK 21.09.2020. We need it to validate field immediately after auto-completion. It's normal "change". It's okay. No additional events required. UPD. before 17.04.2021 "input" triggered instead.
                 .trigger("autocomplete");
 

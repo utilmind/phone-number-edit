@@ -1,13 +1,26 @@
 /*
- *  phone-pattern - 0.2.3
+ *  phone-pattern - 0.2.4
  *  jQuery plugin for perfect formatting of phone numbers
  *
- *  Created by Aleksey Kuznietsov <utilmind@gmail.com> 10.04.2021
+ *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
+ *
+ *  Attributes for individual customization:
+ *
+ *    * data-valid-class="className"		-- automatically validate syntax of entered phone number and put this class if the number IS VALID. Multiple classes allowed, space separated.
+ *    * data-invalid-class="className"		-- automatically validate syntax of entered phone number and put this class if the number IS INVALID. Multiple classes allowed, space separated.
+ *    * data-valid-show="#element"		-- element id to *show* when phone number IS VALID (and hide when invalid or unspecified).
+ *    * data-invalid-show="#element"		-- element id to *show* when phone number IS INVALID (and hiden when valid or unspecified).
+ *
+ *  Events:
+ *    * validate(e, isPhoneValid)	-- triggered on validation. isPhoneValid can be either TRUE, FALSE or "undefined", when input is empty.
  */
 (function() {
     "use strict";
 
     var pluginName = "phonePattern",
+
+        defValidClass = "", // automatically validate syntax of entered phone number and put this class if the number IS VALID. Multiple classes allowed, space separated.
+        defInvalidClass = "is-invalid", // automatically validate syntax of entered phone number and put this class if the number IS INVALID. Multiple classes allowed, space separated.
 
         internationalPatterns = {
                  // pattern + minimum input length to start process the pattern
@@ -37,6 +50,11 @@
             var me = this,
                 $field = me.$field = $(input),
 
+                validClass = $field.data("valid-class") || defValidClass,
+                invalidClass = $field.data("invalid-class") || defInvalidClass,
+                validShow = $field.data("valid-show"),
+                invalidShow = $field.data("invalid-show"),
+
                 digitsOnly = function(str, stripLeading0) {
                     var d = str.replace(/[^\d]/g, "");
                     return stripLeading0
@@ -54,6 +72,7 @@
 
                 charPattern = $field.prop("pattern") || "[\\d\\s\\(\\)\\[\\]\\+\\-–—\\.,/]+",
                 rePattern = new RegExp(charPattern),
+                grePattern = new RegExp(charPattern, "g"),
                 prevVal,
 
                 preparePhonePatterns = function(phonePatterns, setDefaults) {
@@ -271,11 +290,28 @@
 
                   if (paste) {
                       e.preventDefault();
-                      this.value = paste.match(rePattern).join();
+                      this.value = paste.match(grePattern);
                   }
 
             }).on("paste change", function(e) { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
                 makeNicePhone();
+
+            }).on("change", function(e) {
+                var val = this.value,
+                    isValidPhone = !!val && val.isValidPhone(),
+                    isInvalidPhone = !!val && !isValidPhone;
+
+                $field.trigger("validate", !!val ? isValidPhone : undefined);
+
+                if (validClass)
+                    $field.toggleClass(validClass, isValidPhone);
+                if (invalidClass)
+                    $field.toggleClass(invalidClass, isInvalidPhone);
+
+                if (validShow)
+                    $(validShow).toggle(isValidPhone);
+                if (invalidShow)
+                    $(invalidShow).toggle(isInvalidPhone);
             });
 
             var val = $field.val();
@@ -286,6 +322,31 @@
                     $field[0].setSelectionRange(val.length, val.length);
             }
         };
+
+
+    if (!String.prototype.isValidPhone) { // we may already have it from utilmind's commons.
+         // USA phones should contain at least 10 digits. For Ukrainian phones it’s OK to have only 9 digits, without leading 0 and country code prefix: [+380] 88 888-88-88.
+         // UPD. India: +91(+10 digits), China: +86(+10 or 11 digits), etc.
+         String.prototype.isValidPhone = function(minDigitsCount, maxDigitsCount) { // please customize minDigitsCount!
+             var str = this.trim();
+             if (str) {
+                var len,
+                    isPlus = ("+" === str.charAt(0)),
+                    defMin = isPlus ? 11 : 10, // default 10 digits is standard w/o country code for the US, Canada and many other countries.
+                                               // however, for countries like Ukraine all numbers without country code have only 9 digits length, or even 7, without regional code.
+                                               // So please customize minDigitsCount accordingly to the length of numbers in your default country!
+
+                    defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
+
+                str = str.match(/\d/g); // all digits only!
+                len = str.length;
+
+                return str && len >= (minDigitsCount || defMin) &&
+                              len <= (maxDigitsCount || defMax);
+            }
+        }
+    }
+
 
     $.fn[pluginName] = function(options) {
         return this.each(function() {
