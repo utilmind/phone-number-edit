@@ -183,34 +183,30 @@
           "centurytel.net",
           "usa.net",		// below ukr.net
         ],
-      }; // end of defaults
+      }, // end of defaults
 
   // -- @private
   // AK: it's good enough to be canonized somewhere separately
-  function copyCSS(targetEl, sourceElOrVal, styleName) {
-      if (Array.isArray(styleName)) {
-          styleName.forEach(function(style) {
-              copyCSS(targetEl, sourceElOrVal, style); // recursion!
-          });
+      copyCSS = function(targetEl, sourceElOrVal, styleName) {
+          if (Array.isArray(styleName)) {
+              styleName.forEach(function(style) {
+                  copyCSS(targetEl, sourceElOrVal, style); // recursion!
+              });
 
-      }else {
-          if ("object" === typeof sourceElOrVal)
-              sourceElOrVal = $(sourceElOrVal).css(styleName);
+          }else {
+              if ("object" === typeof sourceElOrVal)
+                  sourceElOrVal = $(sourceElOrVal).css(styleName);
 
-          if ($(targetEl).css(styleName) !== sourceElOrVal) // maybe this is odd? need research
-              $(targetEl).css(styleName, sourceElOrVal);
-      }
-  }
+              if ($(targetEl).css(styleName) !== sourceElOrVal) // maybe this is odd? need research
+                  $(targetEl).css(styleName, sourceElOrVal);
+          }
+      },
 
-  // -- Polyfills if there is no utilmind's commons.
-
-  if ("function" !== typeof fl0at) {// we already have fl0at() in utilmind's commons.js, but this script could be loaded before commons. Let's make it little bit more independant.
-      function fl0at(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
-          return isNaN(v = parseFloat(v))
-              ? def || 0
-              : v;
-      }
-  }
+      fl0at = function(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
+              return isNaN(v = parseFloat(v))
+                  ? def || 0
+                  : v;
+      };
 
   if (!String.prototype.isValidEmail) { // we may already have it from utilmind's commons.
       // see also is_valid_email() in "strings.php".

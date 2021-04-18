@@ -695,14 +695,14 @@ function del(e) {
     e.parentNode.removeChild(e); // $(url).remove();
 }
 
-// Allows to execute some action with object (or scope of objects) only once.
+/* Allows to execute some action with object (or scope of objects) only once.
 // Returns true if token initialized (and some action can be completed), or false otherwise.
 // It does not check if element itself exists.
 function once(el, token) {
     return isNaN(el[token || "_umOnce"])
         ? el[token] = true
         : false;
-}
+}*/
 
 // get Bootstrap mode by page width
 function getBSMode(modeId) { // if modeId not specified, just returns the mode name.
