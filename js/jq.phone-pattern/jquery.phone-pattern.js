@@ -290,9 +290,4 @@
 
 })();
 
-
-// find doInit() code right on the HTML page. It used to make sure that jQuery already loaded and wait till "onload" event if not yet.
-doInit(function() { // make autocompleable all emails on page
-    if ("undefined" === typeof $) return 1;
-    $('input[type="tel"][data-pattern]').phonePattern();
-}, 1);
+$('input[type="tel"][data-pattern]').phonePattern();

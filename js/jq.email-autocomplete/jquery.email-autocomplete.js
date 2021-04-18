@@ -488,17 +488,13 @@
 })(jQuery, window, document);
 
 
-doInit(function() { // make autocompleable all emails on page
-    if ("undefined" === typeof $) return 1;
-    $('input[type="email"], input.email-autocomplete').emailautocomplete(); // .email-autocomplete class should be specified in type="text" fields. Eg in sign-in forms, for fields to provide either username or email.
-    /* or
-    $('input[type="email"], input.email-autocomplete').each(function() { // .email-autocomplete class should be specified in type="text" fields. Eg sign-in forms, field to provide either username or email.
-        $(this).emailautocomplete(); // { domains: ["example.com"] });
-    });
-    */
-}, 1);
+$('input[type="email"], input.email-autocomplete').emailautocomplete(); // .email-autocomplete class should be specified in type="text" fields. Eg in sign-in forms, for fields to provide either username or email.
 
-/*
+/* or
+ $('input[type="email"], input.email-autocomplete').each(function() { // .email-autocomplete class should be specified in type="text" fields. Eg sign-in forms, field to provide either username or email.
+     $(this).emailautocomplete(); // { domains: ["example.com"] });
+ });
+
     Sometimes I have troubles with initialization inside of the legacy Yahoo YUI dialogs.
     (Not everywhere. It works great with contact editor, but does not works on requesting required fields after incomplete registration on FAVOR.com.ua)
 
