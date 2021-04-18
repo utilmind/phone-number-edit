@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.2
+ *  phone-pattern - 0.2.3
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com> 10.04.2021
@@ -248,7 +248,6 @@
                    )
                     e.preventDefault();
 
-
             }).on("keyup", function(e) {
                 var curVal = this.value,
                     digitsCurVal = digitsOnly(curVal.trim());
@@ -278,6 +277,14 @@
             }).on("paste change", function(e) { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
                 makeNicePhone();
             });
+
+            var val = $field.val();
+            if (val) { // if field already have some value
+                makeNicePhone();
+                // if we're focused -- move cursor to the end
+                if ($field.is(":focus"))
+                    $field[0].setSelectionRange(val.length, val.length);
+            }
         };
 
     $.fn[pluginName] = function(options) {

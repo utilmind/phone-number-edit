@@ -85,6 +85,8 @@
 
 <script>
 // <![CDATA[
+var wReady=function(e,n){var t=document.readyState;n||"loading"!==t?"complete"!==t?window.addEventListener("load",function(){e(3)}):"number"===typeof document.uLateLoad?document.addEventListener("uLateLoad",function n(){document.removeEventListener("uLateLoad",n),e(3)}):e(3):document.addEventListener("DOMContentLoaded",function(){e(2)&&wReady(e)})},doInit=function(f,w){(w>1||(w&&"loading"===document.readyState)||f(1))&&wReady(f,w>1)}
+
 doInit(function() {
     if ("undefined" === typeof $) return 1;
 
