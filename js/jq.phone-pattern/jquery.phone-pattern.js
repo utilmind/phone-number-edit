@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.5
+ *  phone-pattern - 0.2.6
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -293,10 +293,9 @@
                      (!rePattern.test(ch) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
                        (0 === selStart && ("-" === ch || ")" === ch || "/" === ch || "." === ch))) ||
 
-                    (0 !== selStart && "+" === ch)) {
-                    e.preventDefault();
+                    (0 !== selStart && "+" === ch) ||
 
-                }else if ( // ...check maximum possible length
+                    // ...check maximum possible length
                     (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) && // curPhoneLength is current MAXIMUM possible length of phone number
                       // (selStart === selEnd) && // no selection
                       // UPD 14.04.2021: I decided to allow any insertions. If user inserts then user missed something, returned to position and know what they doing. Let's allow this.
@@ -304,7 +303,7 @@
                       8 !== keyCode && 46 !== keyCode) // backspace or del
                    ) {
                     e.preventDefault();
-                    // validateInput();
+                    // return;
 
                 }else { // input
                     var curVal = this.value,
@@ -323,6 +322,9 @@
                         }
                     }
                 }
+            }).on("paste keyup", function() {
+                if (false === $field.data("is-valid")) // skip undefined
+                    validateInput();
 
             }).on("paste", function(e) {
                   var dataSource = e.originalEvent.clipboardData || window.clipboardData, // second is IE11
