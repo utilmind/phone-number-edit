@@ -174,12 +174,13 @@
                         // TODO: get all country codes, to know their length + know pattern for each country
                         // ... but okay, let's do it for the USA...
 
-                        for (prefix in internationalPatterns)
-                            if (prefix == phone.substr(1, prefix.length)) {
+                        for (prefix in internationalPatterns) {
+                            if (prefix == digPhone.substr(0, prefix.length)) {
                                 tempPattern = internationalPatterns[prefix][0];
                                 curMinPatternLength = internationalPatterns[prefix][1];
                                 break;
                             }
+                        }
 
                         if (!tempPattern)
                             return phone; // do nothing
@@ -345,6 +346,7 @@
             var val = $field.val();
             if (val) { // if field already have some value
                 makeNicePhone();
+                validateInput();
                 // if we're focused -- move cursor to the end
                 if ($field.is(":focus"))
                     $field[0].setSelectionRange(val.length, val.length);
@@ -383,11 +385,11 @@
 
 
     if (!String.prototype.isValidPhone) { // we may already have it from utilmind's commons.
-         // USA phones should contain at least 10 digits. For Ukrainian phones it’s OK to have only 9 digits, without leading 0 and country code prefix: [+380] 88 888-88-88.
-         // UPD. India: +91(+10 digits), China: +86(+10 or 11 digits), etc.
-         String.prototype.isValidPhone = function(minDigitsCount, maxDigitsCount) { // please customize minDigitsCount!
-             var str = this.trim();
-             if (str) {
+        // USA phones should contain at least 10 digits. For Ukrainian phones it’s OK to have only 9 digits, without leading 0 and country code prefix: [+380] 88 888-88-88.
+        // UPD. India: +91(+10 digits), China: +86(+10 or 11 digits), etc.
+        String.prototype.isValidPhone = function(minDigitsCount, maxDigitsCount) { // please customize minDigitsCount!
+            var str = this.trim();
+            if (str) {
                 var len,
                     isPlus = ("+" === str.charAt(0)),
                     defMin = isPlus ? 11 : 10, // default 10 digits is standard w/o country code for the US, Canada and many other countries.
@@ -395,12 +397,13 @@
                                                // So please customize minDigitsCount accordingly to the length of numbers in your default country!
 
                     defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
+  
+                if (str = str.match(/\d/g)) { // all digits only!
+                    len = str.length;
 
-                str = str.match(/\d/g); // all digits only!
-                len = str.length;
-
-                return str && len >= (minDigitsCount || defMin) &&
-                              len <= (maxDigitsCount || defMax);
+                    return len >= (minDigitsCount || defMin) &&
+                           len <= (maxDigitsCount || defMax);
+                }
             }
         }
     }
