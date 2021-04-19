@@ -22,7 +22,7 @@
 <body>
     <div id="content" class="container mt-5">
 
-        <h5><b>Goal:</b> prepare perfect phone and email input fields.</h5>
+        <h4><b>Goal:</b> prepare perfect phone and email input fields.</h4>
 
         <form method="post" id="myform" class="mt-4">
             <div><label class="m-0" for="dlg_phone_us">Phone number, USA &amp; Canada: (XXX) XXX-XXXX</label></div>
@@ -38,6 +38,28 @@
                 <div id="phone1-invalid" class="invalid-feedback">Phone number is obviously invalid <b>(separate element)</b>.</div>
             </div>
 
+            <div class="mt-2"><label class="m-0" for="dlg_email">Email (with auto-completion of domain name):</label></div>
+            <div class="position-relative"><input type="email"
+                name="email" id="dlg_email" class="form-control place-bi text-lowercase"
+                data-domains="target.com, targettvspots.com" data-complete-onblur="0"
+                data-valid-class="is-valid" data-invalid-class="is-invalid is-invalid-syntax" data-valid-show="#email1-valid" data-invalid-show="#email1-invalid"
+                placeholder="your@email" spellcheck="false" maxlength="64" required />
+
+                    <div class="valid-feedback">Email looks valid <b>(bootstrap notice)</b>.</div>
+                    <div class="invalid-feedback">Email is obviously invalid <b>(bootstrap notice)</b>.</div>
+            </div>
+
+                    <div id="email1-valid" class="valid-feedback">Email looks valid <b>(separate element)</b>.</div>
+                    <div id="email1-invalid" class="invalid-feedback">Email is obviously invalid <b>(separate element)</b>.</div>
+
+
+            <div class="mt-3"><button type="submit" class="btn btn-primary">Submit changes</button></div>
+        </form>
+
+        <hr />
+
+        <h2>More cases of phone input</h2>
+        <form method="post" id="myform" class="mt-4">
             <div class="mt-2"><label class="m-0" for="dlg_phone_ua">Phone number, Ukraine: (0XX) XXX-XX-XX. <span class="text-muted">* btw this is good for mobile phones only. Regional area codes may have 2—6 digits in brackets.</span></label></div>
             <div><input type="tel" data-pattern="(0XX) XXX-XX-XX" data-min-pattern-length="2"
                 name="phone" id="dlg_phone_ua" class="form-control place-bi"
@@ -58,23 +80,6 @@
             <div><input type="tel" data-pattern="" data-min-pattern-length="2"
                 name="phone" id="dlg_phone_any" class="form-control place-bi"
                 placeholder="Type +XX for international number" spellcheck="false" maxlength="32" required autofocus /></div>
-
-            <div class="mt-2"><label class="m-0" for="dlg_email">Email (with auto-completion of domain name):</label></div>
-            <div class="position-relative"><input type="email"
-                name="email" id="dlg_email" class="form-control place-bi text-lowercase"
-                data-domains="target.com, targettvspots.com" data-complete-onblur="0"
-                data-valid-class="is-valid" data-invalid-class="is-invalid is-invalid-syntax" data-valid-show="#email1-valid" data-invalid-show="#email1-invalid"
-                placeholder="your@email" spellcheck="false" maxlength="64" required />
-
-                    <div class="valid-feedback">Email looks valid <b>(bootstrap notice)</b>.</div>
-                    <div class="invalid-feedback">Email is obviously invalid <b>(bootstrap notice)</b>.</div>
-            </div>
-
-                    <div id="email1-valid" class="valid-feedback">Email looks valid <b>(separate element)</b>.</div>
-                    <div id="email1-invalid" class="invalid-feedback">Email is obviously invalid <b>(separate element)</b>.</div>
-
-
-            <div class="mt-3"><button type="submit" class="btn btn-primary">Submit changes</button></div>
         </form>
 
         <hr />
@@ -99,8 +104,10 @@ doInit(function() {
     if ("undefined" === typeof $) return 1;
 
     $("#myform").on("submit", function(e) {
-        e.preventDefault();
-        alertify.success("Submitted...");
+        if (!e.originalEvent.defaultPrevented) { // Submission could be already prevented.
+            e.preventDefault();
+            alertify.success("Submitted..."); //  Show notification only if nothing prevents to submit the input.
+        }
     });
 }, 1);
 // ]]>

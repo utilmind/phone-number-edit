@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.3 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.4 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -21,9 +21,15 @@
  *    * data-valid-show="#element"		-- element id to *show* when email IS VALID (and hide when invalid or unspecified).
  *    * data-invalid-show="#element"		-- element id to *show* when email IS INVALID (and hiden when valid or unspecified).
  *
+ *    * data-allow-invalid-submit="#element"	-- submission of invalid input usually blocked by the wrapper form. Set it to any TRUE value to allow invalid submissions.
+ *    * data-custom-validity="...message..."	-- custom error message about requirement to fix the input before submission.
+ *
  *  Events:
  *    * autocomplete(e)			-- triggered after auto-completion. This is additionally to regular "change" event.
  *    * validate(e, isEmailValid)	-- triggered on validation. isEmailValid can be either TRUE, FALSE or "undefined", when input is empty.
+ *
+ *  Also:
+ *    * use $inputField.data("is-valid") to check whether current input is valid (presumably).
  *
  */
 (function($, window, document, undefined) {
@@ -34,6 +40,8 @@
         completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
         validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
         invalidClass: "is-invalid", // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+
+        validityMessage: "This email is obviously invalid. Please fix your input.",
 
         suggClass: "tt-hint", // "eac-sugg", // AK original classname, but I prefer to use just simple color. Some time ago here was "suggColor", but inline styles are unsafe for CSP, so let's use only class.
         domains: [], // add custom domains here, or in attribute: data-domains="domain1.com, domain2.com"
@@ -342,14 +350,14 @@
 
             ).on("keydown", function(e) {
                 if (me.suggestion) {
-                  var key = e.keyCode || e.which;
-                  if (((37 < key) && (41 > key)) || (13 === key)) { // top-right-bottom. Don't use 9 (TAB). It's like "blur".
-                    if (13 === key) {
-                      e.stopPropagation();
-                      e.preventDefault();
+                    var key = e.keyCode || e.which;
+                    if (((37 < key) && (41 > key)) || (13 === key)) { // top-right-bottom. Don't use 9 (TAB). It's like "blur".
+                        if (13 === key) {
+                            e.stopPropagation();
+                            e.preventDefault();
+                        }
+                        me.autocomplete();
                     }
-                    me.autocomplete();
-                  }
                 }
 
             }).on("blur", function() {
@@ -380,9 +388,12 @@
 
                     val = this.value,
                     isValidEmail = !!val && val.isValidEmail(),
-                    isInvalidEmail = !!val && !isValidEmail;
+                    isInvalidEmail = !!val && !isValidEmail,
 
-                $field.trigger("validate", !!val ? isValidEmail : undefined);
+                    isValid = !!val ? isValidEmail : undefined;
+
+                $field.data("is-valid", isValid)
+                      .trigger("validate", isValid);
 
                 if (validClass)
                     $field.toggleClass(validClass, isValidEmail);
@@ -395,10 +406,41 @@
                     $(invalidShow).toggle(isInvalidEmail);
             });
 
-      // touchstart jquery 1.7+
+
+      // touchstart requires jquery 1.7+
       me.$suggOverlay.on("mousedown touchstart", function() {
           me.autocomplete();
       });
+
+
+      // allow submission of invalid input
+      if (!$field.data("allow-invalid-submit")) {
+          // find the wrapper form and hook onSubmit...
+          var $form = $field.closest("form");
+          if ($form.length)
+              $form.on("submit", function(e) {
+                  if (!$field.data("is-valid")) {
+                      var form = this;
+                      e.preventDefault();
+
+                      $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
+                      $field.one("change input", function() { // once
+                          this.setCustomValidity("");
+                      });
+
+                      if (!form.checkValidity())
+                          if ("undefined" !== typeof form.reportValidity) // modern browsers
+                              form.reportValidity();
+                          else { // Internet Explorer
+                              // Create the temporary button, click and remove it
+                              var btn = document.createElement("button");
+                              form.appendChild(btn);
+                              btn.trigger("click");
+                              form.removeChild(btn);
+                          }
+                  }
+              });
+      }
     },
 
     suggest: function(str) {
@@ -461,7 +503,7 @@
         if (me.suggestion) {
             me.$suggOverlay.val("").hide();
 
-            $field.val(me.val + me.suggestion)
+            me.$field.val(me.val + me.suggestion)
                 .trigger("change") // AK 21.09.2020. We need it to validate field immediately after auto-completion. It's normal "change". It's okay. No additional events required. UPD. before 17.04.2021 "input" triggered instead.
                 .trigger("autocomplete");
 

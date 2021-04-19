@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.4
+ *  phone-pattern - 0.2.5
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -11,8 +11,19 @@
  *    * data-valid-show="#element"		-- element id to *show* when phone number IS VALID (and hide when invalid or unspecified).
  *    * data-invalid-show="#element"		-- element id to *show* when phone number IS INVALID (and hiden when valid or unspecified).
  *
+ *    * data-allow-invalid-submit="#element"	-- submission of invalid input usually blocked by the wrapper form. Set it to any TRUE value to allow invalid submissions.
+ *    * data-custom-validity="...message..."	-- custom error message about requirement to fix the input before submission.
+ *
  *  Events:
  *    * validate(e, isPhoneValid)	-- triggered on validation. isPhoneValid can be either TRUE, FALSE or "undefined", when input is empty.
+ *
+ *  Also:
+ *    * use $inputField.data("is-valid") to check whether current input is valid (presumably).
+ *
+ *  TODO (maybe):
+ *    * custom validation of phone number in callback function. Or in event.
+ *    * method to force validation of phone number. (Maybe just use on("change validate", validateInput) and validate it with trigger("validate")?
+ *
  */
 (function() {
     "use strict";
@@ -21,6 +32,8 @@
 
         defValidClass = "", // automatically validate syntax of entered phone number and put this class if the number IS VALID. Multiple classes allowed, space separated.
         defInvalidClass = "is-invalid", // automatically validate syntax of entered phone number and put this class if the number IS INVALID. Multiple classes allowed, space separated.
+
+        defValidityMessage = "This phone number is obviously invalid. Please fix your input.",
 
         internationalPatterns = {
                  // pattern + minimum input length to start process the pattern
@@ -223,6 +236,28 @@
                     if (phoneAllowZeroPrefix)
                         pattern = pattern.replace("0", ""); // cut 1st 0 only. ATTN! It's not 1st char, only 1st 0. Pattern an be "(0..."
                     return pattern;
+                },
+
+                validateInput = function() {
+                    var val = $field[0].value,
+
+                        isValidPhone = !!val && val.isValidPhone(),
+                        isInvalidPhone = !!val && !isValidPhone,
+
+                        isValid = !!val ? isValidPhone : undefined;
+
+                    $field.data("is-valid", isValid)
+                          .trigger("validate", isValid);
+
+                    if (validClass)
+                        $field.toggleClass(validClass, isValidPhone);
+                    if (invalidClass)
+                        $field.toggleClass(invalidClass, isInvalidPhone);
+
+                    if (validShow)
+                        $(validShow).toggle(isValidPhone);
+                    if (invalidShow)
+                        $(invalidShow).toggle(isInvalidPhone);
                 };
 
 
@@ -252,35 +287,40 @@
                          ("+" === ch && "+" !== curVal.charAt(0))
                       )
                    )) {
-                    // ok
-                }else if (
+                    // ok.... this is beginning of input or some control character
+
+                }else if ( // ...check impossible characters                                                                                                                        
                      (!rePattern.test(ch) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
                        (0 === selStart && ("-" === ch || ")" === ch || "/" === ch || "." === ch))) ||
 
-                    (0 !== selStart && "+" === ch) ||
+                    (0 !== selStart && "+" === ch)) {
+                    e.preventDefault();
 
-                    (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) &&
+                }else if ( // ...check maximum possible length
+                    (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) && // curPhoneLength is current MAXIMUM possible length of phone number
                       // (selStart === selEnd) && // no selection
                       // UPD 14.04.2021: I decided to allow any insertions. If user inserts then user missed something, returned to position and know what they doing. Let's allow this.
                       (selStart === curVal.length) && // end of the string
                       8 !== keyCode && 46 !== keyCode) // backspace or del
-                   )
+                   ) {
                     e.preventDefault();
+                    // validateInput();
 
-            }).on("keyup", function(e) {
-                var curVal = this.value,
-                    digitsCurVal = digitsOnly(curVal.trim());
+                }else { // input
+                    var curVal = this.value,
+                        digitsCurVal = digitsOnly(curVal.trim());
 
-                if (e.target.selectionStart === curVal.length && // is end
-                        ("" !== digitsCurVal)) {
+                    if (e.target.selectionStart === curVal.length && // is end
+                            ("" !== digitsCurVal)) {
 
-                    if (8 === e.keyCode) { // 8 = backspace
-                        this.value = prevVal = this.value.replace(/[^\d]+$/, "");
+                        if (8 === e.keyCode) { // 8 = backspace
+                            this.value = prevVal = this.value.replace(/[^\d]+$/, "");
 
-                    }else if // if NOT backspace AND...
-                        (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
-                            makeNicePhone();
-                            prevVal = this.value.trim(); // update
+                        }else if // if NOT backspace AND...
+                            (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
+                                makeNicePhone();
+                                prevVal = this.value.trim(); // update
+                        }
                     }
                 }
 
@@ -293,33 +333,49 @@
                       this.value = paste.match(grePattern);
                   }
 
-            }).on("paste change", function(e) { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
+            }).on("paste change", function() { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
                 makeNicePhone();
 
-            }).on("change", function(e) {
-                var val = this.value,
-                    isValidPhone = !!val && val.isValidPhone(),
-                    isInvalidPhone = !!val && !isValidPhone;
+            }).on("change", validateInput);
 
-                $field.trigger("validate", !!val ? isValidPhone : undefined);
 
-                if (validClass)
-                    $field.toggleClass(validClass, isValidPhone);
-                if (invalidClass)
-                    $field.toggleClass(invalidClass, isInvalidPhone);
-
-                if (validShow)
-                    $(validShow).toggle(isValidPhone);
-                if (invalidShow)
-                    $(invalidShow).toggle(isInvalidPhone);
-            });
-
+            // fix existing value
             var val = $field.val();
             if (val) { // if field already have some value
                 makeNicePhone();
                 // if we're focused -- move cursor to the end
                 if ($field.is(":focus"))
                     $field[0].setSelectionRange(val.length, val.length);
+            }
+
+
+            // allow submission of invalid input
+            if (!$field.data("allow-invalid-submit")) {
+                // find the wrapper form and hook onSubmit...
+                var $form = $field.closest("form");
+                if ($form.length)
+                    $form.on("submit", function(e) {
+                        if (!$field.data("is-valid")) {
+                            var form = this;
+                            e.preventDefault();
+
+                            $field[0].setCustomValidity($field.data("custom-validity") || defValidityMessage);
+                            $field.one("change input", function() { // once
+                                this.setCustomValidity("");
+                            });
+
+                            if (!form.checkValidity())
+                                if ("undefined" !== typeof form.reportValidity) // modern browsers
+                                    form.reportValidity();
+                                else { // Internet Explorer
+                                    // Create the temporary button, click and remove it
+                                    var btn = document.createElement("button");
+                                    form.appendChild(btn);
+                                    btn.trigger("click");
+                                    form.removeChild(btn);
+                                }
+                        }
+                    });
             }
         };
 
