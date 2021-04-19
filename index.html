@@ -104,10 +104,8 @@ doInit(function() {
     if ("undefined" === typeof $) return 1;
 
     $("#myform").on("submit", function(e) {
-        if (!e.originalEvent.defaultPrevented) { // Submission could be already prevented.
-            e.preventDefault();
-            alertify.success("Submitted..."); //  Show notification only if nothing prevents to submit the input.
-        }
+        e.preventDefault();
+        alertify.success("Submitted..."); //  Show notification only if nothing prevents to submit the input.
     });
 }, 1);
 // ]]>

@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.6
+ *  phone-pattern - 0.2.7
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -362,6 +362,7 @@
                         if (!$field.data("is-valid")) {
                             var form = this;
                             e.preventDefault();
+                            e.stopImmediatePropagation(); // block all other "submit" hooks
 
                             $field[0].setCustomValidity($field.data("custom-validity") || defValidityMessage);
                             $field.one("change input", function() { // once

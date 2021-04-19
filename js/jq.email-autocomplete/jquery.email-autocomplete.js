@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.4 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.5 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -16,6 +16,7 @@
  *    * data-complete-onblur="1"		-- auto-completes the suggestion on blur (on switching the input focus out)
  *    * data-domains="domain1.com, domain2.com"	-- allows to specify additional domains for autocompletion. And they have higher priority than default domains.
  *
+ *  Validation of input. Only for input fields with type="email". (Otherwise, if type="text" we can't be 100% certain that non-email value, like "username" is also allowed.)
  *    * data-valid-class="className"		-- automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
  *    * data-invalid-class="className"		-- automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
  *    * data-valid-show="#element"		-- element id to *show* when email IS VALID (and hide when invalid or unspecified).
@@ -425,7 +426,7 @@
 
 
             // allow submission of invalid input
-            if (!$field.data("allow-invalid-submit")) {
+            if ("email" === $field.prop("type") && !$field.data("allow-invalid-submit")) {
                 // find the wrapper form and hook onSubmit...
                 var $form = $field.closest("form");
                 if ($form.length)
@@ -433,6 +434,7 @@
                         if (!$field.data("is-valid")) {
                             var form = this;
                             e.preventDefault();
+                            e.stopImmediatePropagation(); // block all other "submit" hooks
 
                             $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
                             $field.one("change input", function() { // once
