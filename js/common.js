@@ -202,11 +202,12 @@ String.prototype.isValidPhone = function(minDigitsCount, maxDigitsCount) { // pl
 
             defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
 
-        str = str.match(/\d/g); // all digits only!
-        len = str.length;
+        if (str = str.match(/\d/g)) { // all digits only!
+            len = str.length;
 
-        return str && len >= (minDigitsCount || defMin) &&
-                      len <= (maxDigitsCount || defMax);
+            return len >= (minDigitsCount || defMin) &&
+                   len <= (maxDigitsCount || defMax);
+        }
     }
 }
 
@@ -483,20 +484,20 @@ function umboxPrep(t, options) { // isBold, icon, iconWidth
 }
 
 function umbox(t, options /*or icon when (string)*/) { // icon, iconWidth, isBold, title, onOk, effect
-    var title, onOk = valOf(options, "onOk");
+  var title, onOk = valOf(options, "onOk");
 
-    t = umboxPrep(t, options); // prepare even if options doesn't specified
+  t = umboxPrep(t, options); // prepare even if options doesn't specified
 
-    if ("undefined" === typeof alertify) {
-        alert(t.br2nl().stripTags());  // Important! br2nl() before striptags()!
-        if (onOk) onOk();
-    }else {
-        alertify.alert().set({transition: valOf(options, "effect", "zoom")});
-        if (("object" === typeof options) && (onOk || (title = valOf(options, "title"))))
-            alertify.alert(title, t, onOk);
-        else
-            alertify.alert(t);
-    }
+  if ("undefined" === typeof alertify) {
+    alert(t.br2nl().stripTags());  // Important! br2nl() before striptags()!
+    if (onOk) onOk();
+  }else {
+    alertify.alert().set({transition: valOf(options, "effect", "zoom")});
+    if (("object" === typeof options) && (onOk || (title = valOf(options, "title"))))
+      alertify.alert(title, t, onOk);
+    else
+      alertify.alert(t);
+  }
 }
 
 // we always specifying onOk, so I want it as separate parameter. However, if onOk is object, it can be considered as an "options".
@@ -532,80 +533,79 @@ function umconfirm(t, onOk, options) { // onOk, onCancel, icon, is_bold, icon_wi
 }
 
 function umnotify(t) {
-    if ("undefined" === typeof alertify) alert(t);
-    else alertify.warning(t);
+  if ("undefined" === typeof alertify) alert(t);
+  else alertify.warning(t);
 }
 
 
 // FORMS
 // trigger inline form validation supported by ancient browsers. Works on IE11. See https://jsfiddle.net/utilmind/krbun2fw/ to test + see how to make custom validation messages.
 function validateForm(form) { // this is FORCED VALIDATION.
-    if (form) {
-        // Check fields marked as invalid, which passed required/pattern validation.
-        $(form).find(".is-invalid:not(.ignore-invalid)")
-                    .each(function() { // Bootstrap's ".is-invalid".
-                        this.setCustomValidity($(this).data("custom-validity") || commonLang.pleaseFixInput);
+  if (form) {
+    // Check fields marked as invalid, which passed required/pattern validation.
+    $(form).find(".is-invalid:not(.ignore-invalid)").each(function() { // Bootstrap's ".is-invalid".
+          this.setCustomValidity($(this).data("custom-validity") || commonLang.pleaseFixInput);
 
-                    }).one("change input", function() { // once
-                        this.setCustomValidity("");
-                    });
+      }).one("change input", function() { // once
+          this.setCustomValidity("");
+      });
 
 
-        if (form.checkValidity()) return 1; // valid as is
+    if (form.checkValidity()) return 1; // valid as is
 
-        if ("undefined" !== typeof form.reportValidity) // modern browsers
-            form.reportValidity();
-        else { // Internet Explorer
-            // Create the temporary button, click and remove it
-            var btn = document.createElement("button");
-            form.appendChild(btn);
-            btn.trigger("click");
-            form.removeChild(btn);
-        }
+    if ("undefined" !== typeof form.reportValidity) // modern browsers
+      form.reportValidity();
+    else { // Internet Explorer
+      // Create the temporary button, click and remove it
+      var btn = document.createElement("button");
+      form.appendChild(btn);
+      btn.click();
+      form.removeChild(btn);
     }
-    return 0; // false
+  }
+  return 0; // false
 }
 
 // Usage example:
 //   $field.one("input", resetFieldValidity);
 function resetFieldValidity() {
-    if ("" != this.value || !this.hasAttribute("required"))
-        this.setCustomValidity(""); // "" is presumably valid input
+  if ("" != this.value || !this.hasAttribute("required"))
+    this.setCustomValidity(""); // "" is presumably valid input
 }
 
 // Focus being lost after closing "alertify". We must try to focus the control again after short delay. (require jQuery.)
 function delayedFocus(el, selectAll, delay/*optional*/) {
-    if (!el) return;
+  if (!el) return;
 
-    var doFocus = function() {
-        try {
-            if ("undefined" !== typeof $) el = $(el); // do it with jQuery if possible. It should fix issues with mobile Safari etc.
-            el.focus();
-            if (selectAll) el.select();
-        }catch(er){}
-    }
-    // let's try immediately, then repeat after N ms.
-    doFocus();
-    setTimeout(doFocus, delay || 300);
+  var doFocus = function() {
+    try {
+      if ("undefined" !== typeof $) el = $(el); // do it with jQuery if possible. It should fix issues with mobile Safari etc.
+      el.focus();
+      if (selectAll) el.select();
+    }catch(er){}
+  }
+  // let's try immediately, then repeat after N ms.
+  doFocus();
+  setTimeout(doFocus, delay || 300);
 }
 
 // submitForm requires jQuery. formId passed in jQuery format, as #id.
 // works both with <input>- & <button>-based buttons.
 function disableSubmit(formId, submittingText) {
-    if (!submittingText)
-        submittingText = commonLang.pleaseWait + "...";
+  if (!submittingText)
+    submittingText = commonLang.pleaseWait + "...";
 
-    // we looking both for <input>s and <button>s
-    $(formId).find(":submit:not([name='cancel']):enabled").each(function() {
-        var $btn = $(this);
-        $btn.prop("disabled", true);
-        if ("INPUT" === $btn.prop("tagName").toUpperCase()) // it's <input> element
-            $btn.data("title", $btn.val()) // save original title
-                .val(submittingText);
-        else
-            $btn.data("title", $btn.html()) // save original content
-                .html('<span class="spinner-grow spinner-grow-sm"></span>&nbsp; ' + submittingText);
-    });
+  // we looking both for <input>s and <button>s
+  $(formId).find(":submit:not([name='cancel']):enabled").each(function() {
+    var $btn = $(this);
+    $btn.prop("disabled", true);
+    if ("INPUT" === $btn.prop("tagName").toUpperCase()) // it's <input> element
+      $btn.data("title", $btn.val()) // save original title
+          .val(submittingText);
+    else
+      $btn.data("title", $btn.html()) // save original content
+          .html('<span class="spinner-grow spinner-grow-sm"></span>&nbsp; ' + submittingText);
+  });
 }
 
 function restoreSubmit($form) {
