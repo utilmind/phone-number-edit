@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.7
+ *  phone-pattern - 0.2.9
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -25,13 +25,13 @@
  *    * method to force validation of phone number. (Maybe just use on("change validate", validateInput) and validate it with trigger("validate")?
  *
  */
-(function() {
-    "use strict";
+(function($, window, document, undefined) {
+    // "use strict"; // uncomment for development branch
 
     var pluginName = "phonePattern",
 
         defValidClass = "", // automatically validate syntax of entered phone number and put this class if the number IS VALID. Multiple classes allowed, space separated.
-        defInvalidClass = "is-invalid", // automatically validate syntax of entered phone number and put this class if the number IS INVALID. Multiple classes allowed, space separated.
+        defInvalidClass = "is-invalid is-invalid-syntax", // automatically validate syntax of entered phone number and put this class if the number IS INVALID. Multiple classes allowed, space separated.
 
         defValidityMessage = "This phone number is obviously invalid. Please fix your input.",
 
@@ -272,6 +272,7 @@
             // EVENTS
             $field.on("keypress", function(e) {
                 var curVal = this.value.trim(),
+                    curValLength = curVal.length,
                     selStart = e.target.selectionStart,
                     // selEnd = e.target.selectionEnd,
                     keyCode = e.keyCode,
@@ -290,23 +291,33 @@
                    )) {
                     // ok.... this is beginning of input or some control character
 
-                }else if ( // ...check impossible characters                                                                                                                        
+                }else if ( // ...check impossible characters
                      (!rePattern.test(ch) || // not allowed character.. We don't include "+" into the characters pattern, it's very specific case.
                        (0 === selStart && ("-" === ch || ")" === ch || "/" === ch || "." === ch))) ||
 
                     (0 !== selStart && "+" === ch) ||
 
-                    // ...check maximum possible length
-                    (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) && // curPhoneLength is current MAXIMUM possible length of phone number
-                      // (selStart === selEnd) && // no selection
-                      // UPD 14.04.2021: I decided to allow any insertions. If user inserts then user missed something, returned to position and know what they doing. Let's allow this.
-                      (selStart === curVal.length) && // end of the string
-                      8 !== keyCode && 46 !== keyCode) // backspace or del
-                   ) {
+                    ((selStart === curValLength) && // and of the string
+                     (
+                       (  // ...don't allow 2 non-digit characters together
+                          ("0" <= ch || "9" >= ch) &&
+                          ("0" <= curVal.charAt(curValLength-1) || "9" >= curVal.charAt(curValLength-1)) // lastChar
+                       ) ||
+
+                       (  // ...check maximum possible length
+                          (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) && // curPhoneLength is current MAXIMUM possible length of phone number
+                            // (selStart === selEnd) && // no selection
+                            // UPD 14.04.2021: I decided to allow any insertions. If user inserts then user missed something, returned to position and know what they doing. Let's allow this.
+                            8 !== keyCode && 46 !== keyCode) // backspace or del
+                       )
+                     )
+                   )) {
                     e.preventDefault();
                     // return;
 
                 }else { // input
+
+
                     var curVal = this.value,
                         digitsCurVal = digitsOnly(curVal.trim());
 
@@ -328,13 +339,11 @@
                     validateInput();
 
             }).on("paste", function(e) {
-                  var dataSource = e.originalEvent.clipboardData || window.clipboardData, // second is IE11
-                      paste = dataSource.getData("text"); // second is IE11
-
-                  if (paste) {
-                      e.preventDefault();
-                      this.value = paste.match(grePattern);
-                  }
+                var paste = (e.originalEvent.clipboardData || window.clipboardData).getData("text"); // window.clipboardData is IE11
+                if (paste) {
+                    e.preventDefault();
+                    this.value = paste.match(grePattern).join("");
+                }
 
             }).on("paste change", function() { // change covers "blur", if something has been changed. But unlike "blur" it also updates the value if it was changed programmatically.
                 makeNicePhone();
@@ -398,7 +407,7 @@
                                                // So please customize minDigitsCount accordingly to the length of numbers in your default country!
 
                     defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
-  
+
                 if (str = str.match(/\d/g)) { // all digits only!
                     len = str.length;
 
@@ -418,6 +427,8 @@
         });
     };
 
-})();
 
-$('input[type="tel"][data-pattern]').phonePattern();
+    $('input[type="tel"][data-pattern]').phonePattern();
+
+    // ...and don't forget to re-hook the controls when content changed with AJAX. (AK: we doing it in initCommonBehaviors of utilmind's commons.)
+})(jQuery, window, document);

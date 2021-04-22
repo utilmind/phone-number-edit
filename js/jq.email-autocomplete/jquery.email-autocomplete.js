@@ -34,13 +34,15 @@
  *
  */
 (function($, window, document, undefined) {
-    "use strict";
+    // "use strict"; // uncomment for development branch
 
     var pluginName = "emailautocomplete",
         defaults = {
             completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
+
+         // ATTN! These classes work only for <input type="email" />. Otherwise, if regular text (eg usernames) is allowed, we can't know for sure whether the field is invalid.
             validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
-            invalidClass: "is-invalid", // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+            invalidClass: "is-invalid is-invalid-syntax", // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
 
             validityMessage: "This email is obviously invalid. Please fix your input.",
 
@@ -267,6 +269,7 @@
         init: function() {
             var me = this,
                 $field = me.$field,
+                isEmailInput = "email" === $field.prop("type"),
 
                 // AK: the craziest CSS's can modify the padding on focused controls. We must watch them.
                 applyFocusedStyles = function() {
@@ -333,6 +336,7 @@
                     if (invalidShow)
                         $(invalidShow).toggle(isInvalidEmail);
                 };
+
 
             // capitalized emails looking TOTALLY weird when capitalized text torns apart, like Name@GmAil.Com etc. First character of suggested part will be capitalized too, and it's wrong.
             // And we will not respect unfocused capitalization too. First words in emails should never be capitaized.
@@ -407,7 +411,10 @@
                     if (me.$suggOverlay.val())
                         me.$suggOverlay.show();
 
-                }).on("change", validateInput);
+                });
+
+            if (isEmailInput)
+                $field.on("change", validateInput);
 
             // touchstart requires jQuery 1.7+
             me.$suggOverlay.on("mousedown touchstart", function() {
@@ -418,7 +425,8 @@
             // fix existing value
             var val = $field.val();
             if (val) { // if field already have some value
-                validateInput();
+                if (isEmailInput)
+                    validateInput();
                 // if we're focused -- move cursor to the end
                 if ($field.is(":focus"))
                     $field[0].setSelectionRange(val.length, val.length);
@@ -426,7 +434,7 @@
 
 
             // allow submission of invalid input
-            if ("email" === $field.prop("type") && !$field.data("allow-invalid-submit")) {
+            if (isEmailInput && !$field.data("allow-invalid-submit")) {
                 // find the wrapper form and hook onSubmit...
                 var $form = $field.closest("form");
                 if ($form.length)
