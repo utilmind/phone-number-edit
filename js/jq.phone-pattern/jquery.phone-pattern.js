@@ -300,10 +300,10 @@
                     ((selStart === curValLength) && // and of the string
                      (
                        (  // ...don't allow 2 non-digit characters together
-                          ("0" <= ch || "9" >= ch) &&
-                          ("0" <= curVal.charAt(curValLength-1) || "9" >= curVal.charAt(curValLength-1)) // lastChar
+                          curVal &&
+                          ("0" > ch || "9" < ch) &&
+                          ("0" > curVal.charAt(curValLength-1) || "9" < curVal.charAt(curValLength-1)) // lastChar
                        ) ||
-
                        (  // ...check maximum possible length
                           (curPhoneLength && (curPhoneLength <= digitsOnly(curVal, 1).length) && // curPhoneLength is current MAXIMUM possible length of phone number
                             // (selStart === selEnd) && // no selection
@@ -313,27 +313,25 @@
                      )
                    )) {
                     e.preventDefault();
-                    // return;
+                }
+            }).on("keyup", function(e) { // don't move to "keypress". We should have updated "this.value".
 
-                }else { // input
+                var curVal = this.value,
+                    digitsCurVal = digitsOnly(curVal.trim());
 
+                if (e.target.selectionStart === curVal.length && // is end
+                        ("" !== digitsCurVal)) {
 
-                    var curVal = this.value,
-                        digitsCurVal = digitsOnly(curVal.trim());
+                    if (8 === e.keyCode) { // 8 = backspace
+                        this.value = prevVal = this.value.replace(/[^\d]+$/, "");
 
-                    if (e.target.selectionStart === curVal.length && // is end
-                            ("" !== digitsCurVal)) {
-
-                        if (8 === e.keyCode) { // 8 = backspace
-                            this.value = prevVal = this.value.replace(/[^\d]+$/, "");
-
-                        }else if // if NOT backspace AND...
-                            (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
-                                makeNicePhone();
-                                prevVal = this.value.trim(); // update
-                        }
+                    }else if // if NOT backspace AND...
+                        (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
+                            makeNicePhone();
+                            prevVal = this.value.trim(); // update
                     }
                 }
+
             }).on("paste keyup", function() {
                 if (false === $field.data("is-valid")) // skip undefined
                     validateInput();
