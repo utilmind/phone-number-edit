@@ -1,10 +1,10 @@
 /*
- *  email-autocomplete - 0.4.5 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.6 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
  *  Made by Low Yong Zhen <yz@stargate.io>
- *  Modified by Aleksey Kuznietsov <utilmind@gmail> 29.11.2019 — 24.01.2020, 10.04.2021 (v0.3).
+ *  Modified by Aleksey Kuznietsov <utilmind@gmail> 29.11.2019 - 24.01.2020, 10.04.2021 (v0.3).
  *
  *
  *  AK NOTES:
@@ -24,6 +24,8 @@
  *
  *    * data-allow-invalid-submit="#element"	-- submission of invalid input usually blocked by the wrapper form. Set it to any TRUE value to allow invalid submissions.
  *    * data-custom-validity="...message..."	-- custom error message about requirement to fix the input before submission.
+ *
+ *    ...If you'd like to skip validation on the form submission, even if the input is invalid, set "ignore-invalid" class to the field.
  *
  *  Events:
  *    * autocomplete(e)			-- triggered after auto-completion. This is additionally to regular "change" event.
@@ -103,6 +105,7 @@
                 "mindspring.com", // earthlink
                 "earthlink.net",  // earthlink
                 "gmx.com",
+                // "index.com", // dead
                 "inbox.com",
                 "inbox.ru",
                 "pobox.com",
@@ -160,7 +163,7 @@
                 "smtp.ru",		// UA-RU
                 "pochta.ru",		// UA-RU
                 "bigmir.net",		// UA
-                "gala.net",		// UA
+                // "gala.net",		// UA. dead
                 "tut.by",		// BY
 
                 "skynet.be",		// BE
@@ -439,7 +442,7 @@
                 var $form = $field.closest("form");
                 if ($form.length)
                     $form.on("submit", function(e) {
-                        if (!$field.data("is-valid")) {
+                        if ($field.val() && !$field.data("is-valid") && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
                             var form = this;
                             e.preventDefault();
                             e.stopImmediatePropagation(); // block all other "submit" hooks

@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.9
+ *  phone-pattern - 0.2.10
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -13,6 +13,8 @@
  *
  *    * data-allow-invalid-submit="#element"	-- submission of invalid input usually blocked by the wrapper form. Set it to any TRUE value to allow invalid submissions.
  *    * data-custom-validity="...message..."	-- custom error message about requirement to fix the input before submission.
+ *
+ *    ...If you'd like to skip validation on the form submission, even if the input is invalid, set "ignore-invalid" class to the field.
  *
  *  Events:
  *    * validate(e, isPhoneValid)	-- triggered on validation. isPhoneValid can be either TRUE, FALSE or "undefined", when input is empty.
@@ -242,7 +244,7 @@
                 validateInput = function() {
                     var val = $field[0].value,
 
-                        isValidPhone = !!val && val.isValidPhone(),
+                        isValidPhone = !!val && val.isValidPhone(curPhoneLength),
                         isInvalidPhone = !!val && !isValidPhone,
 
                         isValid = !!val ? isValidPhone : undefined;
@@ -317,7 +319,8 @@
             }).on("keyup", function(e) { // don't move to "keypress". We should have updated "this.value".
 
                 var curVal = this.value,
-                    digitsCurVal = digitsOnly(curVal.trim());
+                    curValTrim = curVal.trim(),
+                    digitsCurVal = digitsOnly(curValTrim);
 
                 if (e.target.selectionStart === curVal.length && // is end
                         ("" !== digitsCurVal)) {
@@ -328,7 +331,7 @@
                     }else if // if NOT backspace AND...
                         (!prevVal || (digitsOnly(prevVal) !== digitsCurVal)) {
                             makeNicePhone();
-                            prevVal = this.value.trim(); // update
+                            prevVal = curValTrim; // update
                     }
                 }
 
@@ -366,7 +369,7 @@
                 var $form = $field.closest("form");
                 if ($form.length)
                     $form.on("submit", function(e) {
-                        if (!$field.data("is-valid")) {
+                        if ($field.val() && !$field.data("is-valid") && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
                             var form = this;
                             e.preventDefault();
                             e.stopImmediatePropagation(); // block all other "submit" hooks
@@ -400,13 +403,13 @@
             if (str) {
                 var len,
                     isPlus = ("+" === str.charAt(0)),
-                    defMin = isPlus ? 11 : 10, // default 10 digits is standard w/o country code for the US, Canada and many other countries.
+                    defMin = isPlus ? 11 : 10, // 10 digits is standard w/o country code for the US, Canada and many other countries. (...and 10-digits number is DEFAULT! AK: DON'T CHANGE IT HERE!)
                                                // however, for countries like Ukraine all numbers without country code have only 9 digits length, or even 7, without regional code.
                                                // So please customize minDigitsCount accordingly to the length of numbers in your default country!
 
                     defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
 
-                if (str = str.match(/\d/g)) { // all digits only!
+                if (str = str.match(/\d/g).join("")) { // all digits only!
                     len = str.length;
 
                     return len >= (minDigitsCount || defMin) &&
