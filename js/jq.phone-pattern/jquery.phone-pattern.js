@@ -409,7 +409,7 @@
 
                     defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
 
-                if (str = str.match(/\d/g).join("")) { // all digits only!
+                if ((str = str.match(/\d/g)) && (str = str.join(""))) { // all digits only!
                     len = str.length;
 
                     return len >= (minDigitsCount || defMin) &&

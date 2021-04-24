@@ -1,4 +1,4 @@
-"use strict"; // can be commented on production version
+// "use strict"; // can be commented on production version
 // AK 5.04.2020: Let's prefer Vanilla JS instead of jQuery where it's possible.
 
 // REQUIRED CONFIG VARS (maybe from outside)
@@ -196,13 +196,13 @@ String.prototype.isValidPhone = function(minDigitsCount, maxDigitsCount) { // pl
     if (str) {
         var len,
             isPlus = ("+" === str.charAt(0)),
-            defMin = isPlus ? 11 : 10, // default 10 digits is standard w/o country code for the US, Canada and many other countries.
+            defMin = isPlus ? 11 : 10, // 10 digits is standard w/o country code for the US, Canada and many other countries. (...and 10-digits number is DEFAULT! AK: DON'T CHANGE IT HERE!)
                                        // however, for countries like Ukraine all numbers without country code have only 9 digits length, or even 7, without regional code.
                                        // So please customize minDigitsCount accordingly to the length of numbers in your default country!
 
             defMax = isPlus ? 14 : 11; // 11 digits maximum w/o country code (China) or 14 with country code (Austria).
 
-        if (str = str.match(/\d/g)) { // all digits only!
+        if ((str = str.match(/\d/g)) && (str = str.join(""))) { // all digits only!
             len = str.length;
 
             return len >= (minDigitsCount || defMin) &&
@@ -364,15 +364,15 @@ function getCookie(name, def) {
 function setCookie(name, value, expireSecs) { // to clear cookie set value to "". No value = no cookie.
     var expireStr = "";
     if ("" != value) { // value can be boolean false, so don't do exact type comparison
-      var t = new Date();
-      t.setTime(t.getTime() + (expireSecs ? expireSecs * 1000 : 31536000000)); // 1 year if expiration time not specified
-      expireStr = t.toGMTString();
+        var t = new Date();
+        t.setTime(t.getTime() + (expireSecs ? expireSecs * 1000 : 31536000000)); // 1 year if expiration time not specified
+        expireStr = t.toGMTString();
     }
 
     if ("boolean" === typeof value)
-      value = value ? "1" : "";
+        value = value ? "1" : "";
     else
-      value = escape(value);
+        value = escape(value);
 
     document.cookie = name+"="+value +
        // cookie without expiration is session cookie
@@ -380,6 +380,30 @@ function setCookie(name, value, expireSecs) { // to clear cookie set value to ""
        ";path=/;samesite=strict" + // Since 14.12.2019 we serving only secure cookies and only on the same site. If you need something different -- write alternative implementation.
        (location.protocol === "https:" ? ";secure" : "");
 }
+
+
+/*/ STORAGE. Expirable session records. Original idea: https://stackoverflow.com/questions/15171711/expiry-of-sessionstorage
+function sessionGet(key) {
+    // var val = ("undefined" === typeof sStorage ? sessionStorage : sStorage).getItem(key);
+    var val = sStorage.getItem(key);
+    if (("string" === typeof val) && (val = parseJSON(val))) {
+        if (new Date(val.e) < new Date()) {
+            sStorage.removeItem();
+            val = null;
+        }else {
+            val = val.v;
+        }
+    }
+    return val;
+}
+
+function sessionSet(key, val, expireMin) {
+  // ("undefined" === typeof sStorage ? sessionStorage : sStorage)
+  sStorage.setItem(key, JSON.stringify({
+          v: val,
+          e: new Date(new Date().getTime() + (60000 * expireMin)).toISOString(),
+      }));
+}*/
 
 
 // SELECTION
@@ -795,9 +819,9 @@ function initCommonBehaviors($scope) {
 
         $el.one("change input", function() {
             // reset custom validity for all radio-buttons with the same name on the same form
-            if ("radio" === $el.attr("type")) {
+            if ("radio" === $el.prop("type")) {
                 // find the closest form and reset custom validity on all items
-                $el.closest("form").field($el.attr("name")).each(function() {
+                $el.closest("form").field($el.prop("name")).each(function() {
                     this.setCustomValidity("");
                 });
             }else
@@ -805,9 +829,11 @@ function initCommonBehaviors($scope) {
         });
     });
 
-    // email autocomplete
+    // email autocomplete (now it's performed by "emailautocomplete" itself).
     if ("undefined" !== typeof $.fn.emailautocomplete)
         $scope.find('input[type="email"], input.email-autocomplete').emailautocomplete(); // .email-autocomplete class should be specified in type="text" fields. Eg in sign-in forms, for fields to provide either username or email.
+    if ("undefined" !== typeof $.fn.phonePattern)
+        $scope.find('input[type="tel"][data-pattern]').phonePattern();
 
     /* Decanonized due to very rare use.
     $scope.find(".esc-clear").on("keydown", function(e) { // don't let to press Escape if input box filled. Just clear it. BTW, I want this class
@@ -824,7 +850,7 @@ function initCommonBehaviors($scope) {
     $scope.find(".ctrlenter-submit").on("keypress", function(e) {
         var $this = $(this);
         ctrlEnter(e, function() {
-            $this.closest("form").submit(); // $this from above. Do not confuse!
+            $this.closest("form").trigger("submit"); // $this from above. Do not confuse!
         });
     });
 
@@ -1463,7 +1489,8 @@ function timedPromise(checkFn, timeoutMs, attemptsCnt) {
                               onSuccess(this);
                       });
               }, !noHourglass, useCache, noLang);
-              return false; // to allow usage as <a onClick="return $(container).getHTML(url)">
+
+              return false; // It's violation of jQuery canons, but this allows usage as <a onClick="return $(container).getHTML(url)">
           },
 
           once: function(token) {
@@ -1479,13 +1506,14 @@ function timedPromise(checkFn, timeoutMs, attemptsCnt) {
           },
 
           clearValidation: function() {
-              this.removeClass("is-valid is-invalid"); // remove both
+              return this.removeClass("is-valid is-invalid"); // remove both
           },
 
           // external validation for <input> field. Used to check is username/alias/email taken, whether the entry is correct.
           extValidateInput: function(options) {
             /* Valid options are:
                    except: exceptId
+                   original: originalValue -- no valid nor invalid decoration when original is set.
                    url: validateUrl
                    onPrevalidate: function(fieldValue). Result must be either 1 (valid) or 0 (invalid).
                    onResult: function(result). Result must be either 1 (valid), 0 (invalid) or empty (undefined). Function may return custom result.
@@ -1493,49 +1521,68 @@ function timedPromise(checkFn, timeoutMs, attemptsCnt) {
                We can hook 1 field only once. But we can check different usernames, different exceptions.
                So let's save exceptId somewhere.
              */
-            var _dataToken = "_xtid";
-
             if (!options) options = {};
-            this.data(_dataToken, options.except || "") // set up fresh exceptId
-                .once(_dataToken).on("input", function() { // AK: don't hook "change", to avoid an extra check out when we set up this value programmatically. When we setup it from inside, we suppose that it's valid already.
-                    var $field = $(this),
-                        fieldVal = $field.val().trim(),
+            var $field = this,
+                $form = $field.closest("form"),
+
+                _dataToken = "_xtid",
+                r = $field.data(_dataToken, options) // set up fresh options
+                          .once(_dataToken + "_init") // it must be different of _dataToken, otherwise we'll get empty value if options.except is not set.
+                          .on("input change", function() { // AK: don't hook "change", to avoid an extra check out when we set up this value programmatically. When we setup it from inside, we suppose that it's valid already.
+                    var fieldVal = $field.val().trim(),
                         fieldName = $field.prop("name"),
-                        except = $field.data(_dataToken);
+                        options = $field.data(_dataToken),
+                        isReady = $form.data("ready"); // this is support of bsDialogs. $form.data("ready") is TRUE when all values received and set up.
 
-                    if (fieldVal && (!options.onPrevalidate || options.onPrevalidate(fieldVal))) {
-                      if (!fieldName)
-                        fieldName = $field.data("name"); // alternative to standard "name" attribute
+                    if (isReady || undefined === isReady) { // undefined === it's not dsDialog, but it's okay too. Form is ready then.
 
-                      getURL((options.url || "/out/check-input.php") +
-                             "?field=" + fieldName + "&input=" + encodeURIComponent(fieldVal) +
-                             (except ? "&except="+except : ""), function(o) { // no hourglass. Get the status silently on background.
+                        if ((!options.onPrevalidate || options.onPrevalidate(fieldVal)) && fieldVal && // call onPreValidate() before checking whether fieldVal is not empty!! Always call onPrevalidate!!
+                            (!options.original || options.original !== fieldVal)) {
+        
+                            if (!fieldName)
+                                fieldName = $field.data("name"); // alternative to standard "name" attribute
 
-                          var isValid, temp, r = o.responseText.gap("\n");
+                            getURL((options.url || "/out/check-input.php") +
+                                   "?field=" + fieldName + "&input=" + encodeURIComponent(fieldVal) +
+                                   (options.except ? "&except="+options.except : ""), function(o) { // no hourglass. Get the status silently on background.
 
-                          if (r[0] === fieldVal) {
-                            r = r[1];
+                                var r = o.responseText.gap("\n"); // AK: lame. We may need JSON instead.
 
-                            if (options.onResult) {
-                              temp = options.onResult(r);
-                              if ("undefined" !== typeof temp)
-                                r = temp;
-                            }
+                                if (r[0] === fieldVal) {
+                                    r = r[1];
 
-                            r = r.charAt(0);
-                            if (isNaN(r)) { // any non-integer considered as wrong valid, like undefined
-                              $field.clearValidation();
-                            }else {
-                              isValid = 0 < r;
-                              $field.addClass(isValid ? "is-valid" : "is-invalid") // this is standard Bootstrap's classes, but you can override them to use own styles.
-                                    .removeClass(isValid ? "is-invalid" : "is-valid");
-                            }
-                          }else
+                                    if (options.onResult) {
+                                        var temp = options.onResult(r);
+                                        if ("undefined" !== typeof temp)
+                                            r = temp;
+                                    }
+
+                                    r = r.charAt(0);
+                                    if (isNaN(r)) { // any non-integer considered as wrong valid, like undefined
+                                        $field.clearValidation();
+                                    }else {
+                                        var isValid = 0 < r,
+                                            isValidClass = "is-valid",
+                                            isInvalidClass = "is-invalid";
+
+                                        $field.addClass(isValid ? isValidClass : isInvalidClass) // this is standard Bootstrap's classes, but you can override them to use own styles.
+                                              .removeClass(isValid ? isInvalidClass : isValidClass);
+
+                                        if (options.onValidate)
+                                            options.onValidate(isValid);
+                                    }
+                                }else
+                                    $field.clearValidation();
+                            });
+                        }else
                             $field.clearValidation();
-                      });
-                    }else
-                      $field.clearValidation();
+                    }
                 });
+
+            if (options.validateNow && $field.val())
+                $field.trigger("change");
+
+            return r;
           },
 
           aniRemove: function() {
@@ -1607,21 +1654,22 @@ function requestRecaptcha3($form, recaptchaClientKey, onReady) {
 
   // Warning! Recaptcha API not available locally. Skip it if isLocal is TRUE.
   if (!recaptchaClientKey || ("undefined" !== typeof isLocal && isLocal)) { // empty recaptchaClientKey = no recaptcha.
-    if (onReady) onReady();
+      if (onReady) onReady();
 
   }else if (!isRecaptchaReady()) {
 
-    if ("undefined" === typeof grecaptcha) {
-      loadScript("https://www.google.com/recaptcha/api.js?render=" + recaptchaClientKey, applyRecaptcha);
-    }else
-      applyRecaptcha();
+      if ("undefined" === typeof grecaptcha) {
+          loadScript("https://www.google.com/recaptcha/api.js?render=" + recaptchaClientKey, applyRecaptcha);
+      }else {
+          applyRecaptcha();
+      }
   }
 }
 
 // RESET recaptcha, to be able to re-submit the form. In case of ANY error, or just repeated submission.
 function resetRecaptcha3($form) {
-  $($form).field("g-recaptcha-response").remove(); // alternatively '#form_id  > input[name="g-recaptcha-response"]', but who knows, maybe the form is already an object?
-  // for recaptcha2 just use "grecaptcha.reset()".
+    $($form).field("g-recaptcha-response").remove(); // alternatively '#form_id  > input[name="g-recaptcha-response"]', but who knows, maybe the form is already an object?
+    // for recaptcha2 just use "grecaptcha.reset()".
 }
 
 
