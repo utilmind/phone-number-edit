@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.6 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.7 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -273,6 +273,7 @@
             var me = this,
                 $field = me.$field,
                 isEmailInput = "email" === $field.prop("type"),
+                everValidated,
 
                 // AK: the craziest CSS's can modify the padding on focused controls. We must watch them.
                 applyFocusedStyles = function() {
@@ -338,6 +339,8 @@
                         $(validShow).toggle(isValidEmail);
                     if (invalidShow)
                         $(invalidShow).toggle(isInvalidEmail);
+
+                    everValidated = true;
                 };
 
 
@@ -433,6 +436,10 @@
                 // if we're focused -- move cursor to the end
                 if ($field.is(":focus"))
                     $field[0].setSelectionRange(val.length, val.length);
+
+                // ATTN: field can be filled later by outside script without triggering "change" event.
+                // See https://stackoverflow.com/questions/4672505/why-does-the-jquery-change-event-not-trigger-when-i-set-the-value-of-a-select-us
+                // So if you modify the value from outside -- please force trigger "change" event.
             }
 
 
@@ -442,26 +449,31 @@
                 var $form = $field.closest("form");
                 if ($form.length)
                     $form.on("submit", function(e) {
-                        if ($field.val() && !$field.data("is-valid") && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
-                            var form = this;
-                            e.preventDefault();
-                            e.stopImmediatePropagation(); // block all other "submit" hooks
+                        if ($field.val() && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
+                            if (!everValidated)
+                                validateInput();
 
-                            $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
-                            $field.one("change input", function() { // once
-                                this.setCustomValidity("");
-                            });
+                            if (!$field.data("is-valid")) {
+                                var form = this;
+                                e.preventDefault();
+                                e.stopImmediatePropagation(); // block all other "submit" hooks
 
-                            if (!form.checkValidity())
-                                if ("undefined" !== typeof form.reportValidity) // modern browsers
-                                    form.reportValidity();
-                                else { // Internet Explorer
-                                    // Create the temporary button, click and remove it
-                                    var btn = document.createElement("button");
-                                    form.appendChild(btn);
-                                    btn.trigger("click");
-                                    form.removeChild(btn);
-                                }
+                                $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
+                                $field.one("change input", function() { // once
+                                    this.setCustomValidity("");
+                                });
+
+                                if (!form.checkValidity())
+                                    if ("undefined" !== typeof form.reportValidity) // modern browsers
+                                        form.reportValidity();
+                                    else { // Internet Explorer
+                                        // Create the temporary button, click and remove it
+                                        var btn = document.createElement("button");
+                                        form.appendChild(btn);
+                                        btn.trigger("click");
+                                        form.removeChild(btn);
+                                    }
+                            }
                         }
                     });
             }

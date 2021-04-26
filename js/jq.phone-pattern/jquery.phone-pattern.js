@@ -1,5 +1,5 @@
 /*
- *  phone-pattern - 0.2.10
+ *  phone-pattern - 0.2.11
  *  jQuery plugin for perfect formatting of phone numbers
  *
  *  Created by Aleksey Kuznietsov <utilmind@gmail.com>, April 2021
@@ -69,6 +69,7 @@
                 invalidClass = $field.data("invalid-class") || defInvalidClass,
                 validShow = $field.data("valid-show"),
                 invalidShow = $field.data("invalid-show"),
+                everValidated,
 
                 digitsOnly = function(str, stripLeading0) {
                     var d = str.replace(/[^\d]/g, "");
@@ -261,6 +262,8 @@
                         $(validShow).toggle(isValidPhone);
                     if (invalidShow)
                         $(invalidShow).toggle(isInvalidPhone);
+
+                    everValidated = true;
                 };
 
 
@@ -369,26 +372,31 @@
                 var $form = $field.closest("form");
                 if ($form.length)
                     $form.on("submit", function(e) {
-                        if ($field.val() && !$field.data("is-valid") && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
-                            var form = this;
-                            e.preventDefault();
-                            e.stopImmediatePropagation(); // block all other "submit" hooks
+                        if ($field.val() && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
+                            if (!everValidated)
+                                validateInput();
 
-                            $field[0].setCustomValidity($field.data("custom-validity") || defValidityMessage);
-                            $field.one("change input", function() { // once
-                                this.setCustomValidity("");
-                            });
+                            if (!$field.data("is-valid")) {
+                                var form = this;
+                                e.preventDefault();
+                                e.stopImmediatePropagation(); // block all other "submit" hooks
 
-                            if (!form.checkValidity())
-                                if ("undefined" !== typeof form.reportValidity) // modern browsers
-                                    form.reportValidity();
-                                else { // Internet Explorer
-                                    // Create the temporary button, click and remove it
-                                    var btn = document.createElement("button");
-                                    form.appendChild(btn);
-                                    btn.trigger("click");
-                                    form.removeChild(btn);
-                                }
+                                $field[0].setCustomValidity($field.data("custom-validity") || defValidityMessage);
+                                $field.one("change input", function() { // once
+                                    this.setCustomValidity("");
+                                });
+
+                                if (!form.checkValidity())
+                                    if ("undefined" !== typeof form.reportValidity) // modern browsers
+                                        form.reportValidity();
+                                    else { // Internet Explorer
+                                        // Create the temporary button, click and remove it
+                                        var btn = document.createElement("button");
+                                        form.appendChild(btn);
+                                        btn.trigger("click");
+                                        form.removeChild(btn);
+                                    }
+                            }
                         }
                     });
             }
