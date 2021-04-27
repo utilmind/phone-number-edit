@@ -216,10 +216,8 @@
             }
         },
 
-        fl0at = function(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
-            return isNaN(v = parseFloat(v))
-                ? def || 0
-                : v;
+        fl0at0 = function(v) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value. (Not the same as fl0at() from utilmind's commons.)
+            return isNaN(v = parseFloat(v)) ? 0 : v;
         };
 
     if (!String.prototype.isValidEmail) { // we may already have it from utilmind's commons.
@@ -520,15 +518,15 @@
 
             $sugg.css("top",
                 fieldPos.top +
-                fl0at($field.css("marginTop"))
+                fl0at0($field.css("marginTop"))
             );
 
             $sugg.css("left",
                 fieldPos.left +
-                fl0at($field.css("marginLeft")) +
-                fl0at($field.css("borderLeftWidth")) +
-                fl0at($field.css("paddingLeft")) +
-                fl0at($field.css("textIndent")) +
+                fl0at0($field.css("marginLeft")) +
+                fl0at0($field.css("borderLeftWidth")) +
+                fl0at0($field.css("paddingLeft")) +
+                fl0at0($field.css("textIndent")) +
                 $calc.width()
             );
         },

@@ -312,7 +312,7 @@ function printf() {
 // NUMBERS
 function fl0at(v, def) { // same as parseFloat, but returns 0 if parseFloat returns non-numerical value
     return isNaN(v = parseFloat(v))
-        ? def || 0
+        ? ("undefined" !== typeof def ? def : 0) // "" is good value too. Don't replace with 0 if "" set.
         : v;
 }
 
@@ -508,20 +508,20 @@ function umboxPrep(t, options) { // isBold, icon, iconWidth
 }
 
 function umbox(t, options /*or icon when (string)*/) { // icon, iconWidth, isBold, title, onOk, effect
-  var title, onOk = valOf(options, "onOk");
+    var title, onOk = valOf(options, "onOk");
 
-  t = umboxPrep(t, options); // prepare even if options doesn't specified
+    t = umboxPrep(t, options); // prepare even if options doesn't specified
 
-  if ("undefined" === typeof alertify) {
-    alert(t.br2nl().stripTags());  // Important! br2nl() before striptags()!
-    if (onOk) onOk();
-  }else {
-    alertify.alert().set({transition: valOf(options, "effect", "zoom")});
-    if (("object" === typeof options) && (onOk || (title = valOf(options, "title"))))
-      alertify.alert(title, t, onOk);
-    else
-      alertify.alert(t);
-  }
+    if ("undefined" === typeof alertify) {
+        alert(t.br2nl().stripTags());  // Important! br2nl() before striptags()!
+        if (onOk) onOk();
+    }else {
+        alertify.alert().set({transition: valOf(options, "effect", "zoom")});
+        if (("object" === typeof options) && (onOk || (title = valOf(options, "title"))))
+            alertify.alert(title, t, onOk);
+        else
+            alertify.alert(t);
+    }
 }
 
 // we always specifying onOk, so I want it as separate parameter. However, if onOk is object, it can be considered as an "options".
@@ -557,79 +557,79 @@ function umconfirm(t, onOk, options) { // onOk, onCancel, icon, is_bold, icon_wi
 }
 
 function umnotify(t) {
-  if ("undefined" === typeof alertify) alert(t);
-  else alertify.warning(t);
+    if ("undefined" === typeof alertify) alert(t);
+    else alertify.warning(t);
 }
 
 
 // FORMS
 // trigger inline form validation supported by ancient browsers. Works on IE11. See https://jsfiddle.net/utilmind/krbun2fw/ to test + see how to make custom validation messages.
 function validateForm(form) { // this is FORCED VALIDATION.
-  if (form) {
-    // Check fields marked as invalid, which passed required/pattern validation.
-    $(form).find(".is-invalid:not(.ignore-invalid)").each(function() { // Bootstrap's ".is-invalid".
-          this.setCustomValidity($(this).data("custom-validity") || commonLang.pleaseFixInput);
+    if (form) {
+        // Check fields marked as invalid, which passed required/pattern validation.
+        $(form).find(".is-invalid:not(.ignore-invalid)").each(function() { // Bootstrap's ".is-invalid".
+            this.setCustomValidity($(this).data("custom-validity") || commonLang.pleaseFixInput);
 
-      }).one("change input", function() { // once
-          this.setCustomValidity("");
-      });
+        }).one("change input", function() { // once
+            this.setCustomValidity("");
+        });
 
 
-    if (form.checkValidity()) return 1; // valid as is
+        if (form.checkValidity()) return 1; // valid as is
 
-    if ("undefined" !== typeof form.reportValidity) // modern browsers
-      form.reportValidity();
-    else { // Internet Explorer
-      // Create the temporary button, click and remove it
-      var btn = document.createElement("button");
-      form.appendChild(btn);
-      btn.click();
-      form.removeChild(btn);
+        if ("undefined" !== typeof form.reportValidity) // modern browsers
+            form.reportValidity();
+        else { // Internet Explorer
+            // Create the temporary button, click and remove it
+            var btn = document.createElement("button");
+            form.appendChild(btn);
+            btn.trigger("click");
+            form.removeChild(btn);
+        }
     }
-  }
-  return 0; // false
+    return 0; // false
 }
 
 // Usage example:
 //   $field.one("input", resetFieldValidity);
 function resetFieldValidity() {
-  if ("" != this.value || !this.hasAttribute("required"))
-    this.setCustomValidity(""); // "" is presumably valid input
+    if ("" != this.value || !this.hasAttribute("required"))
+        this.setCustomValidity(""); // "" is presumably valid input
 }
 
 // Focus being lost after closing "alertify". We must try to focus the control again after short delay. (require jQuery.)
 function delayedFocus(el, selectAll, delay/*optional*/) {
-  if (!el) return;
+    if (!el) return;
 
-  var doFocus = function() {
-    try {
-      if ("undefined" !== typeof $) el = $(el); // do it with jQuery if possible. It should fix issues with mobile Safari etc.
-      el.focus();
-      if (selectAll) el.select();
-    }catch(er){}
-  }
-  // let's try immediately, then repeat after N ms.
-  doFocus();
-  setTimeout(doFocus, delay || 300);
+    var doFocus = function() {
+      try {
+        if ("undefined" !== typeof $) el = $(el); // do it with jQuery if possible. It should fix issues with mobile Safari etc.
+        el.focus();
+        if (selectAll) el.select();
+      }catch(er){}
+    }
+    // let's try immediately, then repeat after N ms.
+    doFocus();
+    setTimeout(doFocus, delay || 300);
 }
 
 // submitForm requires jQuery. formId passed in jQuery format, as #id.
 // works both with <input>- & <button>-based buttons.
 function disableSubmit(formId, submittingText) {
-  if (!submittingText)
-    submittingText = commonLang.pleaseWait + "...";
+    if (!submittingText)
+        submittingText = commonLang.pleaseWait + "...";
 
-  // we looking both for <input>s and <button>s
-  $(formId).find(":submit:not([name='cancel']):enabled").each(function() {
-    var $btn = $(this);
-    $btn.prop("disabled", true);
-    if ("INPUT" === $btn.prop("tagName").toUpperCase()) // it's <input> element
-      $btn.data("title", $btn.val()) // save original title
-          .val(submittingText);
-    else
-      $btn.data("title", $btn.html()) // save original content
-          .html('<span class="spinner-grow spinner-grow-sm"></span>&nbsp; ' + submittingText);
-  });
+    // we looking both for <input>s and <button>s
+    $(formId).find(":submit:not([name='cancel']):enabled").each(function() {
+        var $btn = $(this);
+        $btn.prop("disabled", true);
+        if ("INPUT" === $btn.prop("tagName").toUpperCase()) // it's <input> element
+            $btn.data("title", $btn.val()) // save original title
+                .val(submittingText);
+        else
+            $btn.data("title", $btn.html()) // save original content
+                .html('<span class="spinner-grow spinner-grow-sm"></span>&nbsp; ' + submittingText);
+    });
 }
 
 function restoreSubmit($form) {
@@ -934,21 +934,21 @@ function updatePreloadCss() {
 // Unfortunately rel="preload" still not supported by FireFox on 9.12.2019: https://developer.mozilla.org/en-US/docs/Web/HTML/Preloading_content
 // But we don't care FF, let's use it anyway. It should improve performance on other browsers.
 function preloadUrl(src, resourceType) { // if resourceType not specified, it's "script" by default
-  var head = document.head,
-      preloader = document.createElement("link");
+    var head = document.head,
+        preloader = document.createElement("link");
 
-  /* AK 12.2019: Let me clarify about preloading...
+    /* AK 12.2019: Let me clarify about preloading...
 
-     Even during the AJAX sessions we need to execute scripts in certain order.
-     But we don't want to wait while the scripts will be loaded and executed one by one.
-     Let's download everything at once ASAP. Then execute preloaded content one by one applying them into the bottom of <head> section.
-   */
-  preloader.rel = "preload";
-  preloader.as = resourceType || "script";
-  preloader.href = src;
-  // preloading the resource immediately. With jQuery this can be shorter: $(head).prepend('<link rel="preload" href="'+src+'" as="script" />');
-  // head.prepend(preloader); // modern browsers
-  head.insertBefore(preloader, head.childNodes[0]); // IE
+       Even during the AJAX sessions we need to execute scripts in certain order.
+       But we don't want to wait while the scripts will be loaded and executed one by one.
+       Let's download everything at once ASAP. Then execute preloaded content one by one applying them into the bottom of <head> section.
+     */
+    preloader.rel = "preload";
+    preloader.as = resourceType || "script";
+    preloader.href = src;
+    // preloading the resource immediately. With jQuery this can be shorter: $(head).prepend('<link rel="preload" href="'+src+'" as="script" />');
+    // head.prepend(preloader); // modern browsers
+    head.insertBefore(preloader, head.childNodes[0]); // IE
 }
 
 // Creates or finds a link to an external resource (script or link CSS), then put it to the <head> section of DOM.
@@ -987,35 +987,35 @@ function headExtResource(url, // can be either an URL (string type), so new obje
   headObj = document.createElement(tagName);
 
   if ("object" === typeof onLoadEvents) {
-    onError = onLoadEvents.onError;
-    onLoad = onLoadEvents.onLoad;
+      onError = onLoadEvents.onError;
+      onLoad = onLoadEvents.onLoad;
   }else
-    onLoad = onLoadEvents;
+      onLoad = onLoadEvents;
 
 
   if (isScript) {
-    if (isObj && url.defer) { // defered scripts are adding to DOM, but NOT LOADING immediately
-      headObj.srcdefer = src; // !!srcdefer!!
-    }else
-      headObj.src = src;
+      if (isObj && url.defer) { // defered scripts are adding to DOM, but NOT LOADING immediately
+          headObj.srcdefer = src; // !!srcdefer!!
+      }else
+          headObj.src = src;
 
-    preloadUrl(src); // let's download resource even before activation!
+      preloadUrl(src); // let's download resource even before activation!
 
   }else {  // tagName === "link"
-    headObj.href = src;
-    headObj.rel  = isObj && url.rel  ? url.rel  : "stylesheet";
-    headObj.as   = isObj && url.as   ? url.as   : "style";
-    headObj.type = isObj && url.type ? url.type : "text/css";
+      headObj.href = src;
+      headObj.rel  = isObj && url.rel  ? url.rel  : "stylesheet";
+      headObj.as   = isObj && url.as   ? url.as   : "style";
+      headObj.type = isObj && url.type ? url.type : "text/css";
   }
   // console.log('moving '+src);
 
   if (isObj) {
     if (url.integrity) {
-      headObj.crossOrigin = url.crossOrigin;
-      headObj.integrity = url.integrity;
+        headObj.crossOrigin = url.crossOrigin;
+        headObj.integrity = url.integrity;
     }
     if (url.charset)
-      headObj.charset = url.charset;
+        headObj.charset = url.charset;
 
 /* AK 20.12.2019: Internal events should be avoided due to potential security risks..
                   (Atacker may execute malicious code on the page (and completely change it) through these inline event handlers, with bad browser extension.)
@@ -1087,9 +1087,9 @@ function loadScript(scriptUrl, // array ["url1", "url2", "url3", ...] is allowed
                     avoidDoubleLoad) { // if TRUE -- do not call onLoad if object already in DOM
 
   if ("function" === typeof $container) { // it's onLoad, if function. So we skip $container and selector.
-    onLoad = $container;
-    selector = avoidDoubleLoad;
-    $container = false;
+      onLoad = $container;
+      selector = avoidDoubleLoad;
+      $container = false;
   }
 
   // don't check if resource already available. We need to initialize content in any case
@@ -1140,9 +1140,9 @@ function loadScript(scriptUrl, // array ["url1", "url2", "url3", ...] is allowed
         useDeferedScript();
 
     }else {
-      var obj = headExtResource(scriptUrl, "script", onLoad, avoidDoubleLoad);
+        var obj = headExtResource(scriptUrl, "script", onLoad, avoidDoubleLoad);
 
-      if (!obj && onLoad) onLoad(); // call onLoad anyway if resource available, but we don't "avoidDoubleLoad"'s.
+        if (!obj && onLoad) onLoad(); // call onLoad anyway if resource available, but we don't "avoidDoubleLoad"'s.
     }
   }
 }
@@ -1247,7 +1247,7 @@ function setUrlParam(key, val, // if val is undefined, it will be removed from U
         var par, cnt = params.length;
         while (cnt--) { // AK --cnt doesn't works here :)
             par = params[cnt].split("=");
-            if (par[0] == key) {
+            if (par[0] === key) {
                 if (isAdd) {
                     par[1] = val;
                     params[cnt] = par.join("=");
@@ -1266,17 +1266,14 @@ function setUrlParam(key, val, // if val is undefined, it will be removed from U
 
     // Good article about History API https://computerrock.com/blog/html5-changing-the-browser-url-without-refreshing-page/
     newParams = location.origin + location.pathname + newParams + location.hash;
-    if (addToHistory)
-        history.pushState(null, historyTitle, newParams);
-    else // replace existing record
-        history.replaceState(null, historyTitle, newParams);
+    /*window.*/history[addToHistory ? "pushState" : "replaceState"](null, historyTitle, newParams);
 
     return newParams;
 }
 
 function urlEncodeUri(uri) { // see the more advanced backend analogue named make_url_friendly_alias() in strings_translit.php.
                              // It additionally transliterates cyrillic and converts umlauts. But for our purposes, for the front-end it's okay as is.
-  return encodeURIComponent(uri.toLowerCase().replace(/[^a-z\d\-\s_]/, "").replace(/[\s_]+/, "_"));
+    return encodeURIComponent(uri.toLowerCase().replace(/[^a-z\d\-\s_]/, "").replace(/[\s_]+/, "_"));
 }
 
 /* too simple to be canonical:
@@ -1538,7 +1535,7 @@ function timedPromise(checkFn, timeoutMs, attemptsCnt) {
 
                         if ((!options.onPrevalidate || options.onPrevalidate(fieldVal)) && fieldVal && // call onPreValidate() before checking whether fieldVal is not empty!! Always call onPrevalidate!!
                             (!options.original || options.original !== fieldVal)) {
-        
+
                             if (!fieldName)
                                 fieldName = $field.data("name"); // alternative to standard "name" attribute
 
