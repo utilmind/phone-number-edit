@@ -1,5 +1,5 @@
 /*
- *  email-autocomplete - 0.4.7 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.4.9 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
@@ -444,36 +444,34 @@
             // allow submission of invalid input
             if (isEmailInput && !$field.data("allow-invalid-submit")) {
                 // find the wrapper form and hook onSubmit...
-                var $form = $field.closest("form");
-                if ($form.length)
-                    $form.on("submit", function(e) {
-                        if ($field.val() && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
-                            if (!everValidated)
-                                validateInput();
+                $field.closest("form").on("submit", function(e) {
+                    if ($field.val() && !$field.hasClass("ignore-invalid")) { // we don't care about empty input. Set "required" to check it.
+                        if (!everValidated)
+                            validateInput();
 
-                            if (!$field.data("is-valid")) {
-                                var form = this;
-                                e.preventDefault();
-                                e.stopImmediatePropagation(); // block all other "submit" hooks
+                        if (!$field.data("is-valid")) {
+                            var form = this;
+                            e.preventDefault();
+                            e.stopImmediatePropagation(); // block all other "submit" hooks
 
-                                $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
-                                $field.one("change input", function() { // once
-                                    this.setCustomValidity("");
-                                });
+                            $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
+                            $field.one("change input", function() { // once
+                                this.setCustomValidity("");
+                            });
 
-                                if (!form.checkValidity())
-                                    if ("undefined" !== typeof form.reportValidity) // modern browsers
-                                        form.reportValidity();
-                                    else { // Internet Explorer
-                                        // Create the temporary button, click and remove it
-                                        var btn = document.createElement("button");
-                                        form.appendChild(btn);
-                                        btn.trigger("click");
-                                        form.removeChild(btn);
-                                    }
-                            }
+                            if (!form.checkValidity())
+                                if ("undefined" !== typeof form.reportValidity) // modern browsers
+                                    form.reportValidity();
+                                else { // Internet Explorer
+                                    // Create the temporary button, click and remove it
+                                    var btn = document.createElement("button");
+                                    form.appendChild(btn);
+                                    btn.click(); // Important! This is native .click()! Don't replace with jQuery's .trigger("click")!
+                                    form.removeChild(btn);
+                                }
                         }
-                    });
+                    }
+                });
             }
         },
 
