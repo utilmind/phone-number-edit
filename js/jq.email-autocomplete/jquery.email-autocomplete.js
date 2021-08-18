@@ -223,7 +223,12 @@
     if (!String.prototype.isValidEmail) { // we may already have it from utilmind's commons.
         // see also is_valid_email() in "strings.php".
         String.prototype.isValidEmail = function() {
-            return /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,30}(?:\.[a-z]{2})?)$/i.test(this.trim()); /// the longest domain extension in 2015 was ".cancerresearch", and looks like it's not the limit. UPD. how about .travelersinsurance? I set up it the longest domain extension to 30 chars.
+            // This all are valid accordingly to RFC: !#$%&'*+-/=?^_`{|}~
+            // Gmail use + for subadressing. Usage of other special chars in unknown, but they are still valid anyway.
+            // Double-dot, however (..) is not allowed.
+            return 0 <= this.indexOf("..")
+                ? false // email can't have 2 dots at row
+                : /^([\w!#$%&'*+\-/=?^_`{|}~]+(?:\.[\w!#$%&'*+\-/=?^_`{|}~]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,30}(?:\.[a-z]{2})?)$/i.test(this.trim()); // the longest domain extension in 2015 was ".cancerresearch", and looks like it's not the limit. UPD. how about .travelersinsurance? I set up it the longest domain extension to 30 chars.
         }
     }
 
