@@ -246,12 +246,10 @@
             me.options.completeOnBlur = completeOnBlur;
 
     // DOMAINS
-        inputDomains = inputDomains
-            ? inputDomains.split(",").map(function(s) { return s.trim(); }) // trim all domains
-            : [];
-
         me._domains = me.options.domains
-            .concat(inputDomains,
+            .concat(inputDomains // string with domains from "data-domains" attribute. We converting it to an array.
+                        ? inputDomains.split(",").map(function(s) { return s.trim(); }) // trim all domains
+                        : [],
                     me.options.defDomains); // arrays with domains, default + 2nd priority default and custom lists
 
     // VALIDATION
@@ -341,6 +339,9 @@
                     everValidated = true;
                 };
 
+
+            // parent should lock content in relative position, to allow absolute positioning of suggested term
+            $field.parent().css("position", "relative");
 
             // capitalized emails looking TOTALLY weird when capitalized text torns apart, like Name@GmAil.Com etc. First character of suggested part will be capitalized too, and it's wrong.
             // And we will not respect unfocused capitalization too. First words in emails should never be capitaized.
@@ -542,7 +543,7 @@
                 // wait while mousedown/click on $suggOverlay is processed.
                 setTimeout(function() {
                     me.$field.trigger("focus");
-                }, 0);
+                });
             }
         },
     };
