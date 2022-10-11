@@ -1,10 +1,10 @@
 /*
- *  email-autocomplete - 0.4.9 (forked from original code by by Low Yong Zhen  v0.1.3)
+ *  email-autocomplete - 0.5.0 (forked from original code by by Low Yong Zhen  v0.1.3)
  *  jQuery plugin that displays in-place autocomplete suggestions for email input fields.
  *
  *
  *  Made by Low Yong Zhen <yz@stargate.io>
- *  Modified by Aleksey Kuznietsov <utilmind@gmail> 29.11.2019 - 24.01.2020, 10.04.2021 (v0.3).
+ *  Modified by Oleksii Kuznietsov <utilmind@gmail.com> 29.11.2019 - 24.01.2020, 10.04.2021 (v0.3), 01.06.2022 (v0.5.0, invalid-syntax stuff).
  *
  *
  *  AK NOTES:
@@ -19,11 +19,16 @@
  *  Validation of input. Only for input fields with type="email". (Otherwise, if type="text" we can't be 100% certain that non-email value, like "username" is also allowed.)
  *    * data-valid-class="className"		-- automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
  *    * data-invalid-class="className"		-- automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+ *    * data-invalid-syntax-class="className"	-- class used if email syntax invalid
  *    * data-valid-show="#element"		-- element id to *show* when email IS VALID (and hide when invalid or unspecified).
  *    * data-invalid-show="#element"		-- element id to *show* when email IS INVALID (and hiden when valid or unspecified).
+ *    * data-invalid-syntax-show="#element"	-- element id to *show* when email has INVALID SYNTAX (but in general it may look as valid).
  *
  *    * data-allow-invalid-submit="#element"	-- submission of invalid input usually blocked by the wrapper form. Set it to any TRUE value to allow invalid submissions.
  *    * data-custom-validity="...message..."	-- custom error message about requirement to fix the input before submission.
+ *    * data-custom-syntax-validity="...message..."	-- custom error message if email syntax invalid. ((If not specified, then "data-custom-validity" used.)
+ *
+ *    * data-invalid-email="invalid@email.addr" -- syntactically correct email address which should be marked as invalid. (So mark "previous" email or address which "already taken".)
  *
  *    ...If you'd like to skip validation on the form submission, even if the input is invalid, set "ignore-invalid" class to the field.
  *
@@ -33,20 +38,27 @@
  *
  *  Also:
  *    * use $inputField.data("is-valid") to check whether current input is valid (presumably).
+ *    * use $inputField.data("is-invalid-syntax") to check whether syntax is invalid.
  *
  */
 (function($, window, document, undefined) {
     // "use strict"; // uncomment for development branch
 
     var pluginName = "emailautocomplete",
+        STR_IS_VALID		= "is-valid",
+        STR_IS_INVALID		= "is-invalid",
+        STR_IS_INVALID_SYNTAX	= "is-invalid-syntax",
+
         defaults = {
             completeOnBlur: false, // or fill an attribute: data-complete-onblur="1"
 
          // ATTN! These classes work only for <input type="email" />. Otherwise, if regular text (eg usernames) is allowed, we can't know for sure whether the field is invalid.
             validClass: "", // automatically validate syntax of entered email and put this class if email IS VALID. Multiple classes allowed, space separated.
-            invalidClass: "is-invalid is-invalid-syntax", // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+            invalidClass: STR_IS_INVALID, // automatically validate syntax of entered email and put this class if email IS INVALID. Multiple classes allowed, space separated.
+            invalidSyntaxClass: STR_IS_INVALID_SYNTAX,
 
-            validityMessage: "This email is obviously invalid. Please fix your input.",
+            validitySyntaxMessage: "This email is obviously invalid. Please fix your input.", // only on bad syntax
+            validityMessage: "Please use different email address.",
 
             suggClass: "tt-hint", // "eac-sugg", // AK original classname, but I prefer to use just simple color. Some time ago here was "suggColor", but inline styles are unsafe for CSP, so let's use only class.
             domains: [], // add custom domains here, or in attribute: data-domains="domain1.com, domain2.com"
@@ -127,7 +139,8 @@
                 "sky.com",
                 "laposte.net",
 
-            /* Ukraine + Europe */
+                // Ukraine + Europe
+
                 "wanadoo.fr",		// FR
                 "orange.fr",		// FR
                 "free.fr",		// FR
@@ -235,36 +248,41 @@
 
     // -- GO!
     function emailAutocomplete(input, options) {
+        options = $.extend({}, defaults, options);
+
         var me = this,
             $field = me.$field = $(input),
 
             completeOnBlur = $field.data("complete-onblur"),
             inputDomains = $field.data("domains"),
             validClass = $field.data("valid-class"),
-            invalidClass = $field.data("invalid-class");
+            invalidClass = $field.data("invalid-class"),
+            invalidSyntaxClass = $field.data("invalid-syntax-class");
 
-
-        me.options = $.extend({}, defaults, options);
+        me.options = options;
 
     // BLUR
         if (undefined !== completeOnBlur) // if value specified -- use as specified, even "" is value.
-            me.options.completeOnBlur = completeOnBlur;
+            options.completeOnBlur = completeOnBlur;
 
     // DOMAINS
-        me._domains = me.options.domains
+        me._domains = options.domains
             .concat(inputDomains // string with domains from "data-domains" attribute. We converting it to an array.
                         ? inputDomains.split(",").map(function(s) { return s.trim(); }) // trim all domains
                         : [],
-                    me.options.defDomains); // arrays with domains, default + 2nd priority default and custom lists
+                    options.defDomains); // arrays with domains, default + 2nd priority default and custom lists
 
     // VALIDATION
         if (undefined !== validClass)
-            me.options.validClass = validClass;
+            options.validClass = validClass;
         if (undefined !== invalidClass)
-            me.options.invalidClass = invalidClass;
+            options.invalidClass = invalidClass;
+        if (undefined !== invalidSyntaxClass)
+            options.invalidSyntaxClass = invalidSyntaxClass;
     // ... little bit more
-        me.options.validShow = $field.data("valid-show");
-        me.options.invalidShow = $field.data("invalid-show");
+        options.validShow = $field.data("valid-show");
+        options.invalidShow = $field.data("invalid-show");
+        options.invalidSyntaxShow = $field.data("invalid-syntax-show");
 
         me.init();
     }
@@ -272,6 +290,7 @@
     emailAutocomplete.prototype = {
         init: function() {
             var me = this,
+                options = me.options,
                 $field = me.$field,
                 isEmailInput = "email" === $field.prop("type"),
                 everValidated,
@@ -281,22 +300,22 @@
                     var copyFont = function($target) {
                             // AK TODO: we can copy this all as an array. This is quick shitcoding.
                         copyCSS($target, $field, [
-                            // "font", // in Chrome this could be enough w/o Family and Weight. In FireFox we should copy each value.
-                            "fontSize",
-                            "fontFamily",
-                            "fontStyle",
-                            "fontWeight",
-                            "fontVariant",
+                                // "font", // in Chrome this could be enough w/o Family and Weight. In FireFox we should copy each value.
+                                "fontSize",
+                                "fontFamily",
+                                "fontStyle",
+                                "fontWeight",
+                                "fontVariant",
 
-                            "lineHeight",
-                            "wordSpacing",
-                            "letterSpacing",
-                            "textAlign",
-                            "textTransform",
-                            "textRendering",
-                            // "textIndent", // it acts like left padding. We need it only for calculator but not for overlay. We display the suggested text together with primary text, without extra-intendation.
+                                "lineHeight",
+                                "wordSpacing",
+                                "letterSpacing",
+                                "textAlign",
+                                "textTransform",
+                                "textRendering",
+                                // "textIndent", // it acts like left padding. We need it only for calculator but not for overlay. We display the suggested text together with primary text, without extra-intendation.
 
-                            "cursor", // for sure that overlay has exactly the same cursor (if the $field using custom cursor)
+                                "cursor" // for sure that overlay has exactly the same cursor (if the $field using custom cursor)
                             ]);
                         },
 
@@ -316,30 +335,39 @@
                 },
 
                 validateInput = function() {
-                    var validClass = me.options.validClass,
-                        invalidClass = me.options.invalidClass,
+                    var validClass = options.validClass,
+                        invalidClass = options.invalidClass,
+                        invalidSyntaxClass = options.invalidSyntaxClass,
 
-                        validShow = me.options.validShow,
-                        invalidShow = me.options.invalidShow,
+                        validShow = options.validShow,
+                        invalidShow = options.invalidShow,
+                        invalidSyntaxShow = options.invalidSyntaxShow,
 
                         val = $field[0].value,
-                        isValidEmail = !!val && val.isValidEmail(),
-                        isInvalidEmail = !!val && !isValidEmail,
+                        hasValue = "" !== val,
+                        isValidSyntax = !hasValue || (hasValue && val.isValidEmail()),
+                        isValidEmail = isValidSyntax && (val !== $field.data("invalid-email")), // data-invalid-email is optional attribute.
+                        isInvalidEmail = hasValue && !isValidEmail,
 
-                        isValid = !!val ? isValidEmail : undefined;
+                        isValid = hasValue ? isValidEmail : undefined;
 
-                    $field.data("is-valid", isValid)
+                    $field.data(STR_IS_VALID, isValid)
+                          .data(STR_IS_INVALID_SYNTAX, !isValidSyntax)
                             .trigger("validate", isValid);
 
                     if (validClass)
                         $field.toggleClass(validClass, isValidEmail);
+                    if (invalidSyntaxClass)
+                        $field.toggleClass(invalidSyntaxClass, !isValidSyntax);
                     if (invalidClass)
                         $field.toggleClass(invalidClass, isInvalidEmail);
 
                     if (validShow)
                         $(validShow).toggle(isValidEmail);
+                    if (invalidSyntaxShow)
+                        $(invalidSyntaxShow).toggle(!isValidSyntax);
                     if (invalidShow)
-                        $(invalidShow).toggle(isInvalidEmail);
+                        $(invalidShow).toggle(isInvalidEmail && (!invalidSyntaxShow || isValidSyntax)); // just to not display 2 messages simultaniously
 
                     everValidated = true;
                 };
@@ -365,7 +393,7 @@
             }).insertAfter($field);
 
             // Create the suggestion overlay.
-            me.$suggOverlay = $("<input "+(me.options.suggClass ? 'class="' + me.options.suggClass : "") + '" tabindex="-1" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
+            me.$suggOverlay = $("<input "+(options.suggClass ? 'class="' + options.suggClass : "") + '" tabindex="-1" />').css({ // AK 29.11.2019. Since 29.02.2020 without CSP unsafe suggColor. Use only classes to style it!
                 position: "absolute",
                 display: "none",
                 background: "transparent",
@@ -408,7 +436,7 @@
                         me.restoreAlign = null;
                     }
 
-                    if (me.options.completeOnBlur)
+                    if (options.completeOnBlur)
                         me.autocomplete();
                     else
                         me.$suggOverlay.hide(); // css("visibility", "hidden");
@@ -424,7 +452,12 @@
                 });
 
             if (isEmailInput)
-                $field.on("change", validateInput);
+                $field.on("change", validateInput)
+                      .on("input", function() { // AK 15.07.2022: remove invalid marks when user cleared input field.
+                          if ("" === $field[0].value) { // && ($field.hasClass(options.invalidClass) || $field.hasClass(options.invalidSyntaxClass))) {
+                              validateInput();
+                          }
+                      });
 
             // touchstart requires jQuery 1.7+
             me.$suggOverlay.on("mousedown touchstart", function() {
@@ -455,26 +488,33 @@
                         if (!everValidated)
                             validateInput();
 
-                        if (!$field.data("is-valid")) {
-                            var form = this;
+                        if (!$field.data(STR_IS_VALID)) {
                             e.preventDefault();
                             e.stopImmediatePropagation(); // block all other "submit" hooks
 
-                            $field[0].setCustomValidity($field.data("custom-validity") || me.options.validityMessage);
-                            $field.one("change input", function() { // once
+                            var form = this,
+                                badSyntaxMsg = $field.data("custom-syntax-validity") || options.validitySyntaxMessage;
+
+                            $field[0].setCustomValidity(
+                                badSyntaxMsg && $field.data(STR_IS_INVALID_SYNTAX)
+                                    ? badSyntaxMsg
+                                    : $field.data("custom-validity") || options.validityMessage);
+
+                            $field.one("change input paste", function() { // once
                                 this.setCustomValidity("");
                             });
 
-                            if (!form.checkValidity())
-                                if ("undefined" !== typeof form.reportValidity) // modern browsers
+                            if (!form.checkValidity()) {
+                                if (form.reportValidity) { // modern browsers
                                     form.reportValidity();
-                                else { // Internet Explorer
+                                }else { // Internet Explorer
                                     // Create the temporary button, click and remove it
                                     var btn = document.createElement("button");
                                     form.appendChild(btn);
                                     btn.click(); // Important! This is native .click()! Don't replace with jQuery's .trigger("click")!
                                     form.removeChild(btn);
                                 }
+                            }
                         }
                     }
                 });
@@ -518,21 +558,18 @@
 
             // update suggested text
             $calc.text(me.val);
-            $sugg.val(me.suggestion).show();
-
-            $sugg.css("top",
-                fieldPos.top +
-                fl0at0($field.css("marginTop"))
-            );
-
-            $sugg.css("left",
-                fieldPos.left +
-                fl0at0($field.css("marginLeft")) +
-                fl0at0($field.css("borderLeftWidth")) +
-                fl0at0($field.css("paddingLeft")) +
-                fl0at0($field.css("textIndent")) +
-                $calc.width()
-            );
+            $sugg.val(me.suggestion)
+                 .show()
+                 .css({
+                    top: fieldPos.top +
+                        fl0at0($field.css("marginTop")),
+                    left: fieldPos.left +
+                        fl0at0($field.css("marginLeft")) +
+                        fl0at0($field.css("borderLeftWidth")) +
+                        fl0at0($field.css("paddingLeft")) +
+                        fl0at0($field.css("textIndent")) +
+                        $calc.width()
+                });
         },
 
         autocomplete: function() {
@@ -564,7 +601,7 @@
 })(jQuery, window, document);
 
 
-$('input[type="email"], input.email-autocomplete').emailautocomplete(); // .email-autocomplete class should be specified in type="text" fields. Eg in sign-in forms, for fields to provide either username or email.
+$('input[type="email"],input.email-autocomplete').emailautocomplete(); // .email-autocomplete class should be specified in type="text" fields. Eg in sign-in forms, for fields to provide either username or email.
 
 /* or
  $('input[type="email"], input.email-autocomplete').each(function() { // .email-autocomplete class should be specified in type="text" fields. Eg sign-in forms, field to provide either username or email.

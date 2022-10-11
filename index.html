@@ -98,7 +98,7 @@
 
 <script>
 // <![CDATA[
-var wReady=function(e,n){var t=document.readyState;n||"loading"!==t?"complete"!==t?window.addEventListener("load",function(){e(3)}):"number"===typeof document.uLateLoad?document.addEventListener("uLateLoad",function n(){document.removeEventListener("uLateLoad",n),e(3)}):e(3):document.addEventListener("DOMContentLoaded",function(){e(2)&&wReady(e)})},doInit=function(f,w){(w>1||(w&&"loading"===document.readyState)||f(1))&&wReady(f,w>1)}
+!function(n,e){e.wReady=function(t,d){var a=n.readyState;d||"loading"!==a?"complete"!==a?e.addEventListener("load",function(){t(3)}):n.uLateLoad?n.addEventListener("uLateLoad",function(){t(3)}):t(3):n.addEventListener("DOMContentLoaded",function(){t(2)&&wReady(t)})},e.doInit=function(e,t){(1<t||t&&"loading"===n.readyState||e(1))&&wReady(e,1<t)}}(document,window);
 
 doInit(function() {
     if ("undefined" === typeof $) return 1;

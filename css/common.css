@@ -118,30 +118,6 @@ header, footer { /* AK: I have no idea how it works, but it surely works in Boot
 }
 
 
-/* Visible slider tooltip
--------------------------------------------------- */
-.slider .tooltip.in {
-  opacity: 1;
-}
-.slider .tooltip.top .tooltip-arrow {
-  bottom: 0;
-  left: 50%;
-  margin-left: -5px;
-  border-width: 5px 5px 0;
-  border-top-color: #000;
-}
-.slider .tooltip-arrow {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-color: transparent;
-  border-style: solid;
-}
-.slider .tooltip.top {
-  padding: 5px 0;
-}
-
-
 /* button in style of Bootstrap3 */
 /* // not used
 .btn-glyph { // unstyled button with FontAwesome glyph
@@ -191,10 +167,9 @@ header, footer { /* AK: I have no idea how it works, but it surely works in Boot
     font-style: normal;
 }
 
-/* More addons to Bootstrap 4 */
-.form-control:disabled:read-only { /* Fix for disabled & readonly state. Issue described on https://github.com/twbs/bootstrap/issues/31103 */
-        background-color: #e9ecef;
-        opacity: 1;
+/* reset to initial values */
+.initial-font {
+    font-size: initial; /* !important; */
 }
 
 .position-absolute-0 {
@@ -203,6 +178,15 @@ header, footer { /* AK: I have no idea how it works, but it surely works in Boot
         right: 0;
         bottom: 0;
         left: 0;
+}
+
+.top-0 { top: 0; }
+.bottom-0 { bottom: 0; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+
+.margin-0-auto {
+        margin: 0 auto;
 }
 
 .line-1 {
@@ -303,7 +287,7 @@ img.wh-60em {
 
 /* More typeahead styles */
 .tt-hint {
-    color: #999 !important; /* important to override form-control */
+    color: #999 !important; /* important to override form-control. BTW, it's good for use as input.tt-hint, to display suggestions. */
 }
 
 .tt-menu {
@@ -373,12 +357,11 @@ ul.typeahead strong {
         font-weight: bold !important; /* !important to override Bootstap's "form-control" weight */
 }
 
-select.place-i option[value=""],
-select.place-i option[value="0"] {
+select.place-i option[value=""] { /* AK 16.05.2021: Important! There is no value="0" anymore. Because 0 is normal value for indexes, not null. */
         font-style: italic;
         font-weight: normal;
 }
-select.place-i option:not([value="0"]):not([value=""]) {
+select.place-i option:not([value=""]) {
         font-style: normal;
         font-weight: normal;
 }
@@ -396,6 +379,7 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal !important; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
 }
 /* Firefox 4-18 */
 .place-i:-moz-placeholder,
@@ -403,6 +387,7 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal !important; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
 }
 /* Firefox 19-50 */
 .place-i::-moz-placeholder,
@@ -410,6 +395,7 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal !important; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
 }
 /* - Internet Explorer 10-11
    - Internet Explorer Mobile 10-11 */
@@ -418,6 +404,7 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal !important; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
 }
 /* Edge (also supports ::-webkit-input-placeholder) */
 .place-i::-ms-input-placeholder,
@@ -425,6 +412,7 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal !important; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
 }
 /* (Modern browsers)
    CSS Pseudo-Elements Level 4 Editor's Draft
@@ -435,6 +423,15 @@ select.place-i option:not([value="0"]):not([value=""]) {
   color: #6c757d;
   font-weight: normal; /* important to override !important of .place-bi (at least in IE, but for sure other browsers too.) */
   font-style: italic;
+  font-family: var(--font-family-sans-serif);
+}
+
+/* <input type="number" have arrow controls to close to right-aligned text. This is the fix for that behavior.
+https://stackoverflow.com/questions/32505389/how-can-i-add-padding-right-to-an-input-type-number-when-aligning-right
+*/
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	margin-left: 4px;
 }
 
 
@@ -593,10 +590,6 @@ div.footline > div.copyright {
 
 
 /* RESPONSIVE FONT ETC. */
-.d-xxs-only { /* xxs only. See also ".d-xxs-none" */
-  display: none;
-}
-
 main.main, table.main { /* XL- */
     font-size: 1.4rem; /*5? */
 }
@@ -637,22 +630,10 @@ main.main, table.main { /* XL- */
         main.main, table.main  {
                 font-size: 1.1rem;
         }
-        .d-xs-block {
-                width: 100%;
-                display: block;
-        }
 }
 @media (max-width: 420px) {  /* XXS? */
         main.main, table.main {
                 font-size: 1rem;
-        }
-        .d-xxs-only, /* displayed only in XXS, otherwise -- hidden */
-        .d-xxs-block {
-                display: block; /* important for d-xxs-only */
-                width: 100%;
-        }
-        .d-xxs-none {
-                display: none !important; /* yes, important. */
         }
 }
 
@@ -710,6 +691,13 @@ main.main, table.main { /* XL- */
         }
 }
 @media (min-width: 576px) { /* SM+ */
+	.position-sm-relative {
+		position: relative;
+	}
+	.position-sm-absolute {
+		position: absolute;
+	}
+
 	.w-sm-auto { /* bootstrap addon */
 		width: auto !important; /* important to override w-100 */
 	}
@@ -805,27 +793,12 @@ main.main, table.main { /* XL- */
 
 
 /* PRINTING */
-@media print {
-    .no-print, .no-print * {
-        display: none !important;
-    }
-}
-
 .unbreak {
         page-break-inside: avoid;
 }
 
 
 /* MISC */
-.margin-0-auto {
-        margin: 0 auto;
-}
 .w-1px { /* less as possible. Good together with "margin-0-auto" */
         width: 1px;
-}
-
-
-/* reset to initial values */
-.initial-font {
-	font-size: initial; /* !important; */
 }
